@@ -5,10 +5,17 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    adder
+    metabonding
     (
-        add
-        getSum
+        addProject
+        addRewardsCheckpoint
+        changeSigner
+        claimRewards
+        depositRewards
+        isPaused
+        pause
+        removeProject
+        unpause
     )
 }
 
