@@ -1,14 +1,15 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::project::{Epoch, Project, ProjectId};
+use crate::project::{Project, ProjectId};
 
 pub type ManagedHash<M> = ManagedByteArray<M, 32>;
+pub type Week = usize;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct RewardsCheckpoint<M: ManagedTypeApi> {
+    pub root_hash: ManagedHash<M>,
     pub total_delegation_supply: BigUint<M>,
-    pub epoch: Epoch,
 }
 
 #[elrond_wasm::module]
@@ -17,20 +18,29 @@ pub trait RewardsModule: crate::project::ProjectModule {
     #[endpoint(addRewardsCheckpoint)]
     fn add_rewards_checkpoint(
         &self,
+        week: Week,
         root_hash: ManagedHash<Self::Api>,
         total_delegation_supply: BigUint,
-        epoch: Epoch,
     ) {
+        let last_checkpoint_week = self.get_last_checkpoint_week();
+        require!(week == last_checkpoint_week + 1, "Invalid checkpoint week");
+
         require!(
-            self.rewards_checkpoints(&root_hash).is_empty(),
-            "Checkpoint already exists"
+            !self.root_hash_known(&root_hash).get(),
+            "Root hash already used"
         );
+        require!(
+            total_delegation_supply > 0,
+            "Invalid total delegation supply"
+        );
+
+        self.root_hash_known(&root_hash).set(&true);
 
         let checkpoint = RewardsCheckpoint {
             total_delegation_supply,
-            epoch,
+            root_hash,
         };
-        self.rewards_checkpoints(&root_hash).set(&checkpoint);
+        self.rewards_checkpoints().push(&checkpoint);
     }
 
     #[payable("*")]
@@ -58,26 +68,27 @@ pub trait RewardsModule: crate::project::ProjectModule {
 
     fn calculate_reward_amount(
         &self,
-        rewards_supply: &BigUint,
+        project: &Project<Self::Api>,
         user_delegation_amount: &BigUint,
         total_delegation_supply: &BigUint,
     ) -> BigUint {
-        &(rewards_supply * user_delegation_amount) / total_delegation_supply
+        let project_duration_weeks = project.get_duration_in_weeks() as u32;
+        let rewards_supply_per_week = &project.reward_supply / project_duration_weeks;
+
+        &(&rewards_supply_per_week * user_delegation_amount) / total_delegation_supply
+    }
+
+    #[inline]
+    fn get_last_checkpoint_week(&self) -> Week {
+        self.rewards_checkpoints().len()
     }
 
     #[storage_mapper("rewardsCheckpoints")]
-    fn rewards_checkpoints(
-        &self,
-        root_hash: &ManagedHash<Self::Api>,
-    ) -> SingleValueMapper<RewardsCheckpoint<Self::Api>>;
+    fn rewards_checkpoints(&self) -> VecMapper<RewardsCheckpoint<Self::Api>>;
 
-    #[storage_mapper("rewardsDeposited")]
-    fn rewards_deposited(&self, project_id: &ProjectId<Self::Api>) -> SingleValueMapper<bool>;
+    #[storage_mapper("rootHashKnown")]
+    fn root_hash_known(&self, root_hash: &ManagedHash<Self::Api>) -> SingleValueMapper<bool>;
 
     #[storage_mapper("rewardsClaimed")]
-    fn rewards_claimed(
-        &self,
-        user: &ManagedAddress,
-        root_hash: &ManagedHash<Self::Api>,
-    ) -> SingleValueMapper<bool>;
+    fn rewards_claimed(&self, user: &ManagedAddress, week: Week) -> SingleValueMapper<bool>;
 }

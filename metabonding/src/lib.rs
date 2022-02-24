@@ -6,11 +6,11 @@ mod project;
 mod rewards;
 
 use elrond_wasm::api::InvalidSliceError;
-use rewards::{ManagedHash, RewardsCheckpoint};
+use rewards::{ManagedHash, RewardsCheckpoint, Week};
 
 const PUBKEY_LEN: usize = 32;
 const SIGNATURE_LEN: usize = 64;
-const MAX_DATA_LEN: usize = 100;
+const MAX_DATA_LEN: usize = 120; // 32 * 3 bytes, with some extra for high BigUint values
 
 pub type Signature<M> = ManagedByteArray<M, SIGNATURE_LEN>;
 
@@ -23,6 +23,10 @@ pub trait Metabonding:
     #[init]
     fn init(&self, signer: ManagedAddress) {
         self.signer().set(&signer);
+        self.set_paused(true);
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set(&current_epoch);
     }
 
     #[only_owner]
@@ -34,39 +38,47 @@ pub trait Metabonding:
     #[endpoint(claimRewards)]
     fn claim_rewards(
         &self,
-        root_hash: ManagedHash<Self::Api>,
+        week: Week,
         user_delegation_amount: BigUint,
         signature: Signature<Self::Api>,
     ) {
         require!(self.not_paused(), "May not claim rewards while paused");
 
-        self.verify_signature(&root_hash, &user_delegation_amount, &signature);
-
         let caller = self.blockchain().get_caller();
         require!(
-            !self.rewards_claimed(&caller, &root_hash).get(),
-            "Already claimed rewards for this root hash"
+            !self.rewards_claimed(&caller, week).get(),
+            "Already claimed rewards for this week"
         );
 
-        let checkpoint_mapper = self.rewards_checkpoints(&root_hash);
-        require!(!checkpoint_mapper.is_empty(), "Invalid root hash");
-        let checkpoint: RewardsCheckpoint<Self::Api> = checkpoint_mapper.get();
+        let last_checkpoint_week = self.get_last_checkpoint_week();
+        require!(week <= last_checkpoint_week, "No checkpoint for week yet");
+
+        let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
+        self.verify_signature(
+            &caller,
+            &checkpoint.root_hash,
+            &user_delegation_amount,
+            &signature,
+        );
 
         let mut user_rewards = ManagedVec::new();
         for (id, project) in self.projects().iter() {
             if !self.rewards_deposited(&id).get() {
                 continue;
             }
-            if !self.is_in_range(checkpoint.epoch, project.start_epoch, project.end_epoch) {
+            if !self.is_in_range(week, project.start_week, project.end_week) {
                 continue;
             }
 
             let reward_amount = self.calculate_reward_amount(
-                &project.reward_supply,
+                &project,
                 &user_delegation_amount,
                 &checkpoint.total_delegation_supply,
             );
             if reward_amount > 0 {
+                self.leftover_project_funds(&id)
+                    .update(|leftover| *leftover -= &reward_amount);
+
                 let user_payment = EsdtTokenPayment {
                     token_type: EsdtTokenType::Fungible,
                     token_identifier: project.reward_token,
@@ -77,7 +89,7 @@ pub trait Metabonding:
             }
         }
 
-        self.rewards_claimed(&caller, &root_hash).set(&true);
+        self.rewards_claimed(&caller, week).set(&true);
 
         if !user_rewards.is_empty() {
             let _ = Self::Api::send_api_impl().direct_multi_esdt_transfer_execute(
@@ -90,17 +102,20 @@ pub trait Metabonding:
         }
     }
 
-    fn is_in_range(&self, value: u64, min: u64, max: u64) -> bool {
+    #[inline]
+    fn is_in_range(&self, value: Week, min: Week, max: Week) -> bool {
         (min..=max).contains(&value)
     }
 
     fn verify_signature(
         &self,
+        caller: &ManagedAddress,
         root_hash: &ManagedHash<Self::Api>,
         user_delegation_amount: &BigUint,
         signature: &Signature<Self::Api>,
     ) {
-        let mut data = root_hash.as_managed_buffer().clone();
+        let mut data = caller.as_managed_buffer().clone();
+        data.append(root_hash.as_managed_buffer());
         data.append(&user_delegation_amount.to_bytes_be_buffer());
 
         let data_len = data.len();
