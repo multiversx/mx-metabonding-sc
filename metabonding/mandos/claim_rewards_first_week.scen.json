@@ -1,0 +1,170 @@
+{
+    "name": "claim rewards",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "add_checkpoints.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "unpause",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:meta",
+                "function": "unpause",
+                "arguments": [],
+                "gasLimit": "10,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "logs": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user-1-claim-week-1",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:meta",
+                "function": "claimRewards",
+                "arguments": [
+                    "1",
+                    "25,000",
+                    "0x030cdb9fb64364d6ba77c906aafda516ec3e47cd5a3e31934a4da233550d882c5fdb047acc467f47268e89a4dd3e66e0889ce08a04c14052c768fb38a3188401"
+                ],
+                "gasLimit": "10,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "logs": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "comment": "user1 receives 25% * 1B / 3 = 250M / 3 for the first project",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:PROJ-123456": "83,333,333"
+                    }
+                },
+                "sc:meta": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:PROJ-123456": "916,666,667",
+                        "str:COOL-123456": "2,000,000,000"
+                    },
+                    "storage": {
+                        "str:signer": "0x52773868c13654355cca16adb389b09201fabf5d9d4b795ebbdae5b361b46f20",
+                        "str:pause_module:paused": "false",
+                        "str:firstWeekStartEpoch": "5",
+                        "str:leftoverProjectFunds|nested:str:FirstProj": "916,666,667",
+                        "str:leftoverProjectFunds|nested:str:SecondProj": "2,000,000,000",
+                        "str:rewardsClaimed|address:user1|u32:1": "true",
+                        "+": ""
+                    },
+                    "code": "file:../output/metabonding.wasm"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user-1-claim-week-1-again",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:meta",
+                "function": "claimRewards",
+                "arguments": [
+                    "1",
+                    "25,000",
+                    "0x030cdb9fb64364d6ba77c906aafda516ec3e47cd5a3e31934a4da233550d882c5fdb047acc467f47268e89a4dd3e66e0889ce08a04c14052c768fb38a3188401"
+                ],
+                "gasLimit": "10,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "4",
+                "message": "str:Already claimed rewards for this week",
+                "logs": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "user-2-claim-week-1",
+            "tx": {
+                "from": "address:user2",
+                "to": "sc:meta",
+                "function": "claimRewards",
+                "arguments": [
+                    "1",
+                    "50,000",
+                    "0xa91b7bb924c5f576b7756eafe1c25819627fae286f6525fbd5f30647d4650e51e917ee531fa1ee43fd071b29a217aa9492a2fe90fd84d3d7cb4ed9389126f904"
+                ],
+                "gasLimit": "10,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "logs": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "comment": "user2 receives 50% * 1B / 3 = 500M / 3 for the first project",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:PROJ-123456": "83,333,333"
+                    }
+                },
+                "address:user2": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:PROJ-123456": "166,666,666"
+                    }
+                },
+                "sc:meta": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:PROJ-123456": "750,000,001",
+                        "str:COOL-123456": "2,000,000,000"
+                    },
+                    "storage": {
+                        "str:signer": "0x52773868c13654355cca16adb389b09201fabf5d9d4b795ebbdae5b361b46f20",
+                        "str:pause_module:paused": "false",
+                        "str:firstWeekStartEpoch": "5",
+                        "str:leftoverProjectFunds|nested:str:FirstProj": "750,000,001",
+                        "str:leftoverProjectFunds|nested:str:SecondProj": "2,000,000,000",
+                        "str:rewardsClaimed|address:user1|u32:1": "true",
+                        "str:rewardsClaimed|address:user2|u32:1": "true",
+                        "+": ""
+                    },
+                    "code": "file:../output/metabonding.wasm"
+                },
+                "+": ""
+            }
+        }
+    ]
+}

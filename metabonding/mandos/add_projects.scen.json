@@ -141,6 +141,60 @@
                 "status": "0",
                 "logs": "*"
             }
+        },
+        {
+            "step": "scCall",
+            "txId": "deposit-rewards-first-project",
+            "tx": {
+                "from": "address:project_owner1",
+                "to": "sc:meta",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:PROJ-123456",
+                        "value": "1,000,000,000"
+                    }
+                ],
+                "function": "depositRewards",
+                "arguments": [
+                    "str:FirstProj"
+                ],
+                "gasLimit": "10,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "logs": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "deposit-rewards-second-project",
+            "tx": {
+                "from": "address:project_owner2",
+                "to": "sc:meta",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:COOL-123456",
+                        "value": "2,000,000,000"
+                    }
+                ],
+                "function": "depositRewards",
+                "arguments": [
+                    "str:SecondProj"
+                ],
+                "gasLimit": "10,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "logs": "*",
+                "gas": "*",
+                "refund": "*"
+            }
         }
     ]
 }

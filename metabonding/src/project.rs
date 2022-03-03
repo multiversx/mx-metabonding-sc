@@ -143,7 +143,7 @@ pub trait ProjectModule {
     }
 
     #[view(getAllProjectIds)]
-    fn get_all_project_ids(&self) -> ManagedMultiResultVec<ProjectId<Self::Api>> {
+    fn get_all_project_ids(&self) -> MultiValueEncoded<ProjectId<Self::Api>> {
         let mut all_ids = ManagedVec::new();
         for id in self.projects().keys() {
             all_ids.push(id);
@@ -156,7 +156,7 @@ pub trait ProjectModule {
     fn get_project_by_id(
         &self,
         project_id: ProjectId<Self::Api>,
-    ) -> MultiResult4<TokenIdentifier, BigUint, Week, Week> {
+    ) -> MultiValue4<TokenIdentifier, BigUint, Week, Week> {
         match self.projects().get(&project_id) {
             Some(p) => (p.reward_token, p.reward_supply, p.start_week, p.end_week).into(),
             None => sc_panic!(INVALID_PROJECT_ID_ERR_MSG),
