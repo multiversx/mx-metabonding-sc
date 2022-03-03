@@ -1,5 +1,6 @@
 {
     "name": "claim rewards",
+    "comment": "first week, only first project is active",
     "steps": [
         {
             "step": "externalSteps",
