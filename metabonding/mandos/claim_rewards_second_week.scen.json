@@ -7,6 +7,26 @@
             "path": "claim_rewards_first_week.scen.json"
         },
         {
+            "step": "scQuery",
+            "txId": "get-rewards-week-2",
+            "tx": {
+                "to": "sc:meta",
+                "function": "getRewardsForWeek",
+                "arguments": [
+                    "2",
+                    "25,000"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "str:FirstProj", "str:PROJ-123456", "41,666,666",
+                    "str:SecondProj", "str:COOL-123456", "50,000,000"
+                ],
+                "status": "0",
+                "logs": "*"
+            }
+        },
+        {
             "step": "scCall",
             "txId": "user-1-claim-week-2",
             "tx": {

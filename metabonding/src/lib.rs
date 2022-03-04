@@ -5,6 +5,8 @@ elrond_wasm::imports!();
 mod project;
 mod rewards;
 
+use core::borrow::Borrow;
+
 use elrond_wasm::api::ED25519_SIGNATURE_BYTE_LEN;
 use rewards::{ManagedHash, RewardsCheckpoint, Week};
 
@@ -59,50 +61,27 @@ pub trait Metabonding:
             &signature,
         );
 
-        let mut user_rewards = ManagedVec::new();
-        for (id, project) in self.projects().iter() {
-            if !self.rewards_deposited(&id).get() {
-                continue;
-            }
-            if !self.is_in_range(week, project.start_week, project.end_week) {
-                continue;
-            }
-
-            let reward_amount = self.calculate_reward_amount(
-                &project,
-                &user_delegation_amount,
-                &checkpoint.total_delegation_supply,
-            );
-            if reward_amount > 0 {
-                self.leftover_project_funds(&id)
-                    .update(|leftover| *leftover -= &reward_amount);
-
-                let user_payment = EsdtTokenPayment {
-                    token_type: EsdtTokenType::Fungible,
-                    token_identifier: project.reward_token,
-                    token_nonce: 0,
-                    amount: reward_amount,
-                };
-                user_rewards.push(user_payment);
-            }
-        }
-
         self.rewards_claimed(&caller, week).set(&true);
 
-        if !user_rewards.is_empty() {
+        let weekly_rewards = self.get_rewards_for_week(
+            week,
+            &user_delegation_amount,
+            &checkpoint.total_delegation_supply,
+        );
+        if !weekly_rewards.is_empty() {
+            for (id, payment) in weekly_rewards.into_iter() {
+                self.leftover_project_funds(id.borrow())
+                    .update(|leftover| *leftover -= &payment.amount);
+            }
+
             let _ = Self::Api::send_api_impl().direct_multi_esdt_transfer_execute(
                 &caller,
-                &user_rewards,
+                &weekly_rewards.payments,
                 0,
                 &ManagedBuffer::new(),
                 &ManagedArgBuffer::new_empty(),
             );
         }
-    }
-
-    #[inline]
-    fn is_in_range(&self, value: Week, min: Week, max: Week) -> bool {
-        (min..=max).contains(&value)
     }
 
     fn verify_signature(

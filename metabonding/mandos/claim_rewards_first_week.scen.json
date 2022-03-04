@@ -26,6 +26,25 @@
             }
         },
         {
+            "step": "scQuery",
+            "txId": "get-rewards-week-1",
+            "tx": {
+                "to": "sc:meta",
+                "function": "getRewardsForWeek",
+                "arguments": [
+                    "1",
+                    "25,000"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "str:FirstProj", "str:PROJ-123456", "83,333,333"
+                ],
+                "status": "0",
+                "logs": "*"
+            }
+        },
+        {
             "step": "scCall",
             "txId": "user-1-claim-week-1",
             "tx": {
