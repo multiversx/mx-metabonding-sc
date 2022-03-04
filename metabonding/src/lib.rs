@@ -5,14 +5,12 @@ elrond_wasm::imports!();
 mod project;
 mod rewards;
 
-use elrond_wasm::api::InvalidSliceError;
+use elrond_wasm::api::ED25519_SIGNATURE_BYTE_LEN;
 use rewards::{ManagedHash, RewardsCheckpoint, Week};
 
-const PUBKEY_LEN: usize = 32;
-const SIGNATURE_LEN: usize = 64;
 const MAX_DATA_LEN: usize = 120; // 32 * 3 bytes, with some extra for high BigUint values
 
-pub type Signature<M> = ManagedByteArray<M, SIGNATURE_LEN>;
+pub type Signature<M> = ManagedByteArray<M, ED25519_SIGNATURE_BYTE_LEN>;
 
 /// Source code for the pause module:
 /// https://github.com/ElrondNetwork/elrond-wasm-rs/blob/master/elrond-wasm-modules/src/pause.rs
@@ -26,7 +24,7 @@ pub trait Metabonding:
         self.set_paused(true);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set(&current_epoch);
+        self.first_week_start_epoch().set_if_empty(&current_epoch);
     }
 
     #[only_owner]
@@ -118,33 +116,13 @@ pub trait Metabonding:
         data.append(root_hash.as_managed_buffer());
         data.append(&user_delegation_amount.to_bytes_be_buffer());
 
-        let data_len = data.len();
-        require!(data_len <= MAX_DATA_LEN, "Signature data too long");
-
-        let mut pubkey_buffer = [0u8; PUBKEY_LEN];
-        let mut sig_buffer = [0u8; SIGNATURE_LEN];
-        let mut data_buffer = [0u8; MAX_DATA_LEN];
-
         let signer: ManagedAddress = self.signer().get();
-        let mut copy_result = signer.as_managed_buffer().load_slice(0, &mut pubkey_buffer);
-        self.require_result_ok(&copy_result);
-
-        copy_result = signature.as_managed_buffer().load_slice(0, &mut sig_buffer);
-        self.require_result_ok(&copy_result);
-
-        copy_result = data.load_slice(0, &mut data_buffer);
-        self.require_result_ok(&copy_result);
-
-        let valid_signature = self.crypto().verify_ed25519(
-            &pubkey_buffer[..],
-            &data_buffer[..data_len],
-            &sig_buffer[..],
+        let valid_signature = self.crypto().verify_ed25519_managed::<MAX_DATA_LEN>(
+            signer.as_managed_byte_array(),
+            &data,
+            signature,
         );
         require!(valid_signature, "Invalid signature");
-    }
-
-    fn require_result_ok(&self, result: &Result<(), InvalidSliceError>) {
-        require!(result.is_ok(), "Could not copy managed buffer to array");
     }
 
     #[storage_mapper("signer")]
