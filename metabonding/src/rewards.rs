@@ -47,7 +47,11 @@ pub trait RewardsModule: crate::project::ProjectModule {
         total_delegation_supply: BigUint,
     ) {
         let last_checkpoint_week = self.get_last_checkpoint_week();
-        require!(week == last_checkpoint_week + 1, "Invalid checkpoint week");
+        let current_week = self.get_current_week();
+        require!(
+            week == last_checkpoint_week + 1 && week <= current_week,
+            "Invalid checkpoint week"
+        );
 
         require!(
             !self.root_hash_known(&root_hash).get(),
