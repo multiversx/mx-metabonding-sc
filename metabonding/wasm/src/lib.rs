@@ -11,7 +11,11 @@ elrond_wasm_node::wasm_endpoints! {
         addRewardsCheckpoint
         changeSigner
         claimRewards
+        clearExpiredProjects
         depositRewards
+        getAllProjectIds
+        getCurrentWeek
+        getProjectById
         isPaused
         pause
         removeProject
