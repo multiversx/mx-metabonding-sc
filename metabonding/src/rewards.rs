@@ -6,7 +6,7 @@ use core::ops::Deref;
 
 pub type ManagedHash<M> = ManagedByteArray<M, 32>;
 pub type Week = usize;
-pub type PrettyPayments<M> =
+pub type PrettyRewards<M> =
     MultiValueEncoded<M, MultiValue3<ProjectId<M>, TokenIdentifier<M>, BigUint<M>>>;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
@@ -99,7 +99,7 @@ pub trait RewardsModule: crate::project::ProjectModule {
         &self,
         week: Week,
         user_delegation_amount: BigUint,
-    ) -> PrettyPayments<Self::Api> {
+    ) -> PrettyRewards<Self::Api> {
         let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
         let weekly_rewards = self.get_rewards_for_week(
             week,
