@@ -21,7 +21,7 @@ pub struct WeeklyRewards<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> WeeklyRewards<M> {
-    pub fn into_iter(
+    pub fn iter(
         &self,
     ) -> core::iter::Zip<
         ManagedVecRefIterator<M, ProjectId<M>>,
@@ -108,7 +108,7 @@ pub trait RewardsModule: crate::project::ProjectModule {
         );
 
         let mut rewards_pretty = MultiValueEncoded::new();
-        for (id, payment) in weekly_rewards.into_iter() {
+        for (id, payment) in weekly_rewards.iter() {
             rewards_pretty
                 .push((id.deref().clone(), payment.token_identifier, payment.amount).into());
         }

@@ -69,7 +69,7 @@ pub trait Metabonding:
             &checkpoint.total_delegation_supply,
         );
         if !weekly_rewards.is_empty() {
-            for (id, payment) in weekly_rewards.into_iter() {
+            for (id, payment) in weekly_rewards.iter() {
                 self.leftover_project_funds(id.borrow())
                     .update(|leftover| *leftover -= &payment.amount);
             }
