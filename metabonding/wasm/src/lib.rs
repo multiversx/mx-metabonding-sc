@@ -16,6 +16,7 @@ elrond_wasm_node::wasm_endpoints! {
         getAllProjectIds
         getCurrentWeek
         getProjectById
+        getRewardsForWeek
         isPaused
         pause
         removeProject
