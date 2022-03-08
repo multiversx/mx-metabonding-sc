@@ -91,7 +91,7 @@ pub trait RewardsModule: crate::project::ProjectModule {
     ) -> MultiValueEncoded<Week> {
         let current_week = self.get_current_week();
         let start_week = if number_weeks_to_look_back > current_week {
-            0
+            1
         } else {
             current_week - number_weeks_to_look_back
         };
