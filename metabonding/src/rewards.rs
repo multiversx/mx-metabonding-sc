@@ -4,14 +4,12 @@ elrond_wasm::derive_imports!();
 use crate::project::{Project, ProjectId};
 use core::ops::Deref;
 
-pub type ManagedHash<M> = ManagedByteArray<M, 32>;
 pub type Week = usize;
 pub type PrettyRewards<M> =
     MultiValueEncoded<M, MultiValue3<ProjectId<M>, TokenIdentifier<M>, BigUint<M>>>;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct RewardsCheckpoint<M: ManagedTypeApi> {
-    pub root_hash: ManagedHash<M>,
     pub total_delegation_supply: BigUint<M>,
 }
 
@@ -40,12 +38,7 @@ impl<M: ManagedTypeApi> WeeklyRewards<M> {
 pub trait RewardsModule: crate::project::ProjectModule {
     #[only_owner]
     #[endpoint(addRewardsCheckpoint)]
-    fn add_rewards_checkpoint(
-        &self,
-        week: Week,
-        root_hash: ManagedHash<Self::Api>,
-        total_delegation_supply: BigUint,
-    ) {
+    fn add_rewards_checkpoint(&self, week: Week, total_delegation_supply: BigUint) {
         let last_checkpoint_week = self.get_last_checkpoint_week();
         let current_week = self.get_current_week();
         require!(
@@ -54,19 +47,12 @@ pub trait RewardsModule: crate::project::ProjectModule {
         );
 
         require!(
-            !self.root_hash_known(&root_hash).get(),
-            "Root hash already used"
-        );
-        require!(
             total_delegation_supply > 0,
             "Invalid total delegation supply"
         );
 
-        self.root_hash_known(&root_hash).set(&true);
-
         let checkpoint = RewardsCheckpoint {
             total_delegation_supply,
-            root_hash,
         };
         self.rewards_checkpoints().push(&checkpoint);
     }
@@ -180,9 +166,6 @@ pub trait RewardsModule: crate::project::ProjectModule {
 
     #[storage_mapper("rewardsCheckpoints")]
     fn rewards_checkpoints(&self) -> VecMapper<RewardsCheckpoint<Self::Api>>;
-
-    #[storage_mapper("rootHashKnown")]
-    fn root_hash_known(&self, root_hash: &ManagedHash<Self::Api>) -> SingleValueMapper<bool>;
 
     #[storage_mapper("rewardsClaimed")]
     fn rewards_claimed(&self, user: &ManagedAddress, week: Week) -> SingleValueMapper<bool>;
