@@ -46,6 +46,25 @@
             }
         },
         {
+            "step": "scQuery",
+            "txId": "get-claimable-weeks",
+            "tx": {
+                "to": "sc:meta",
+                "function": "getUserClaimableWeeks",
+                "arguments": [
+                    "address:user1",
+                    "1"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "1", "2"
+                ],
+                "status": "0",
+                "logs": "*"
+            }
+        },
+        {
             "step": "scCall",
             "txId": "user-1-claim-week-1",
             "tx": {
@@ -99,6 +118,25 @@
                     "code": "file:../output/metabonding.wasm"
                 },
                 "+": ""
+            }
+        },
+        {
+            "step": "scQuery",
+            "txId": "get-claimable-weeks",
+            "tx": {
+                "to": "sc:meta",
+                "function": "getUserClaimableWeeks",
+                "arguments": [
+                    "address:user1",
+                    "1"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "2"
+                ],
+                "status": "0",
+                "logs": "*"
             }
         },
         {

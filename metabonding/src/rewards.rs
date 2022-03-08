@@ -83,6 +83,29 @@ pub trait RewardsModule: crate::project::ProjectModule {
         self.rewards_deposited(&project_id).set(&true);
     }
 
+    #[view(getUserClaimableWeeks)]
+    fn get_user_claimable_weeks(
+        &self,
+        user_address: ManagedAddress,
+        number_weeks_to_look_back: Week,
+    ) -> MultiValueEncoded<Week> {
+        let current_week = self.get_current_week();
+        let start_week = if number_weeks_to_look_back > current_week {
+            0
+        } else {
+            current_week - number_weeks_to_look_back
+        };
+
+        let mut weeks_list = MultiValueEncoded::new();
+        for week in start_week..=current_week {
+            if !self.rewards_claimed(&user_address, week).get() {
+                weeks_list.push(week);
+            }
+        }
+
+        weeks_list
+    }
+
     #[view(getRewardsForWeek)]
     fn get_rewards_for_week_pretty(
         &self,
