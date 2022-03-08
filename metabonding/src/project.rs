@@ -10,14 +10,18 @@ const PROJECT_EXPIRATION_WEEKS: Week = 1;
 const MAX_PROJECT_ID_LEN: usize = 10;
 const MIN_GAS_FOR_CLEAR: u64 = 5_000_000;
 const INVALID_PROJECT_ID_ERR_MSG: &[u8] = b"Invalid project ID";
+pub const MAX_PERCENTAGE: u64 = 100;
 
 pub type ProjectId<M> = ManagedBuffer<M>;
+pub type ProjectAsMultiResult<M> =
+    MultiValue5<TokenIdentifier<M>, BigUint<M>, BigUint<M>, Week, Week>;
 pub type Epoch = u64;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct Project<M: ManagedTypeApi> {
     pub reward_token: TokenIdentifier<M>,
-    pub reward_supply: BigUint<M>,
+    pub delegation_reward_supply: BigUint<M>,
+    pub lkmex_reward_supply: BigUint<M>,
     pub start_week: Week,
     pub end_week: Week,
 }
@@ -34,6 +38,17 @@ impl<M: ManagedTypeApi> Project<M> {
     pub fn get_duration_in_weeks(&self) -> Week {
         self.end_week - self.start_week + 1
     }
+
+    pub fn into_multiresult(self) -> ProjectAsMultiResult<M> {
+        (
+            self.reward_token,
+            self.delegation_reward_supply,
+            self.lkmex_reward_supply,
+            self.start_week,
+            self.end_week,
+        )
+            .into()
+    }
 }
 
 #[elrond_wasm::module]
@@ -48,6 +63,7 @@ pub trait ProjectModule {
         reward_supply: BigUint,
         start_week: Week,
         duration_weeks: Week,
+        lkmex_rewards_percentage: u64,
     ) {
         require!(
             reward_token.is_valid_esdt_identifier(),
@@ -62,6 +78,11 @@ pub trait ProjectModule {
         );
         require!(duration_weeks > 0, "Invalid duration");
 
+        require!(
+            lkmex_rewards_percentage <= MAX_PERCENTAGE,
+            "Invalid percentage"
+        );
+
         let id_len = project_id.len();
         require!(
             id_len > 0 && id_len <= MAX_PROJECT_ID_LEN,
@@ -71,9 +92,13 @@ pub trait ProjectModule {
         self.project_owner(&project_id).set(&project_owner);
         self.leftover_project_funds(&project_id).set(&reward_supply);
 
+        let lkmex_reward_supply = &reward_supply * lkmex_rewards_percentage / MAX_PERCENTAGE;
+        let delegation_reward_supply = &reward_supply - &lkmex_reward_supply;
+
         let project = Project {
             reward_token,
-            reward_supply,
+            delegation_reward_supply,
+            lkmex_reward_supply,
             start_week,
             end_week: start_week + duration_weeks - 1,
         };
@@ -156,9 +181,9 @@ pub trait ProjectModule {
     fn get_project_by_id(
         &self,
         project_id: ProjectId<Self::Api>,
-    ) -> MultiValue4<TokenIdentifier, BigUint, Week, Week> {
+    ) -> ProjectAsMultiResult<Self::Api> {
         match self.projects().get(&project_id) {
-            Some(p) => (p.reward_token, p.reward_supply, p.start_week, p.end_week).into(),
+            Some(p) => p.into_multiresult(),
             None => sc_panic!(INVALID_PROJECT_ID_ERR_MSG),
         }
     }

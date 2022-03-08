@@ -33,7 +33,8 @@
                 "function": "getRewardsForWeek",
                 "arguments": [
                     "1",
-                    "25,000"
+                    "25,000",
+                    "0"
                 ]
             },
             "expect": {
@@ -54,6 +55,7 @@
                 "arguments": [
                     "1",
                     "25,000",
+                    "0",
                     "0x1bd8ab3e3e58576d1238de8915efdfbd8b3264b6fbf21c76ce99677fae833e76e0b727c62005cda4588f48093ffee9c292616f555787ffb40f623fdd035e8e0f"
                 ],
                 "gasLimit": "10,000,000",
@@ -109,6 +111,7 @@
                 "arguments": [
                     "1",
                     "25,000",
+                    "0",
                     "0x1bd8ab3e3e58576d1238de8915efdfbd8b3264b6fbf21c76ce99677fae833e76e0b727c62005cda4588f48093ffee9c292616f555787ffb40f623fdd035e8e0f"
                 ],
                 "gasLimit": "10,000,000",
@@ -133,6 +136,7 @@
                 "arguments": [
                     "1",
                     "50,000",
+                    "0",
                     "0xbd1ced5d8db5f469c5ea90d2443d996a1136b4aa513f0a18c8c6ac08ac0ff3c55d8ac834bcd402e4a6860aceca08930b97dfe57d8903f82839b5140afcdddb0a"
                 ],
                 "gasLimit": "10,000,000",
