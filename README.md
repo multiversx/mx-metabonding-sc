@@ -32,7 +32,7 @@ Distribution is not done automatically. Each user will have to claim their own r
 Since the metabonding SC does not have access to the staking pool's information, it will receive these informations from the users when they claim. These are checked against a signature provided by the owner (or another designated signer address). The current implementation works like this:
 
 - owner checks the staking pools, and gets the total amounts, then creates the checkpoint for the current week with those values
-- owner checks the specific values for users, then the signature is given by `sign_ed25519(week_number + user_address + user_egld_staked_amount + user_lkmex_staked_amount)`
+- owner checks the specific values for users, then the signature is given by `sign_ed25519(week_number + user_address + user_egld_staked_amount + user_lkmex_staked_amount)`. This is signed using the `signer`'s secret key
 - the user claims rewards, by giving the week number, user_egld_staked_amount, user_lkmex_staked_amount and the signature as arguments. 
 - the metabonding SC verifies the signature, and gives the user their share of the rewards
 - the SC marks the rewards as claimed for the given week for the current user
@@ -41,7 +41,9 @@ Since the metabonding SC does not have access to the staking pool's information,
 
 The weekly reward formula is as follows:
 
-total_weekly_reward = project_reward_supply / week_duration  
+Note: Percentages are considered to be in range [0, 100] in this example.  
+
+total_weekly_reward = project_reward_supply / project_duration_weeks 
 weekly_reward_lkmex = total_weekly_reward * lkmex_reward_percentage / 100  
 weekly_reward_egld = total_weekly_reward - weekly_reward_lkmex  
 
