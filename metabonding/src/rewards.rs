@@ -4,15 +4,14 @@ elrond_wasm::derive_imports!();
 use crate::project::{Project, ProjectId};
 use core::ops::Deref;
 
-pub type ManagedHash<M> = ManagedByteArray<M, 32>;
 pub type Week = usize;
 pub type PrettyRewards<M> =
     MultiValueEncoded<M, MultiValue3<ProjectId<M>, TokenIdentifier<M>, BigUint<M>>>;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct RewardsCheckpoint<M: ManagedTypeApi> {
-    pub root_hash: ManagedHash<M>,
     pub total_delegation_supply: BigUint<M>,
+    pub total_lkmex_staked: BigUint<M>,
 }
 
 pub struct WeeklyRewards<M: ManagedTypeApi> {
@@ -43,8 +42,8 @@ pub trait RewardsModule: crate::project::ProjectModule {
     fn add_rewards_checkpoint(
         &self,
         week: Week,
-        root_hash: ManagedHash<Self::Api>,
         total_delegation_supply: BigUint,
+        total_lkmex_staked: BigUint,
     ) {
         let last_checkpoint_week = self.get_last_checkpoint_week();
         let current_week = self.get_current_week();
@@ -53,20 +52,9 @@ pub trait RewardsModule: crate::project::ProjectModule {
             "Invalid checkpoint week"
         );
 
-        require!(
-            !self.root_hash_known(&root_hash).get(),
-            "Root hash already used"
-        );
-        require!(
-            total_delegation_supply > 0,
-            "Invalid total delegation supply"
-        );
-
-        self.root_hash_known(&root_hash).set(&true);
-
         let checkpoint = RewardsCheckpoint {
             total_delegation_supply,
-            root_hash,
+            total_lkmex_staked,
         };
         self.rewards_checkpoints().push(&checkpoint);
     }
@@ -85,13 +73,37 @@ pub trait RewardsModule: crate::project::ProjectModule {
             None => sc_panic!("Invalid project ID"),
         };
 
+        let total_reward_supply = project.lkmex_reward_supply + project.delegation_reward_supply;
         require!(
             project.reward_token == payment_token,
             "Invalid payment token"
         );
-        require!(project.reward_supply == payment_amount, "Invalid amount");
+        require!(total_reward_supply == payment_amount, "Invalid amount");
 
         self.rewards_deposited(&project_id).set(&true);
+    }
+
+    #[view(getUserClaimableWeeks)]
+    fn get_user_claimable_weeks(
+        &self,
+        user_address: ManagedAddress,
+        number_weeks_to_look_back: Week,
+    ) -> MultiValueEncoded<Week> {
+        let current_week = self.get_current_week();
+        let start_week = if number_weeks_to_look_back >= current_week {
+            1
+        } else {
+            current_week - number_weeks_to_look_back
+        };
+
+        let mut weeks_list = MultiValueEncoded::new();
+        for week in start_week..=current_week {
+            if !self.rewards_claimed(&user_address, week).get() {
+                weeks_list.push(week);
+            }
+        }
+
+        weeks_list
     }
 
     #[view(getRewardsForWeek)]
@@ -99,12 +111,15 @@ pub trait RewardsModule: crate::project::ProjectModule {
         &self,
         week: Week,
         user_delegation_amount: BigUint,
+        user_lkmex_staked_amount: BigUint,
     ) -> PrettyRewards<Self::Api> {
         let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
         let weekly_rewards = self.get_rewards_for_week(
             week,
             &user_delegation_amount,
+            &user_lkmex_staked_amount,
             &checkpoint.total_delegation_supply,
+            &checkpoint.total_lkmex_staked,
         );
 
         let mut rewards_pretty = MultiValueEncoded::new();
@@ -120,10 +135,13 @@ pub trait RewardsModule: crate::project::ProjectModule {
         &self,
         week: Week,
         user_delegation_amount: &BigUint,
+        user_lkmex_staked_amount: &BigUint,
         total_delegation_supply: &BigUint,
+        total_lkmex_staked: &BigUint,
     ) -> WeeklyRewards<Self::Api> {
         let mut project_ids = ManagedVec::new();
         let mut user_rewards = ManagedVec::new();
+
         for (id, project) in self.projects().iter() {
             if !self.rewards_deposited(&id).get() {
                 continue;
@@ -135,7 +153,9 @@ pub trait RewardsModule: crate::project::ProjectModule {
             let reward_amount = self.calculate_reward_amount(
                 &project,
                 user_delegation_amount,
+                user_lkmex_staked_amount,
                 total_delegation_supply,
+                total_lkmex_staked,
             );
             if reward_amount > 0 {
                 project_ids.push(id);
@@ -160,12 +180,35 @@ pub trait RewardsModule: crate::project::ProjectModule {
         &self,
         project: &Project<Self::Api>,
         user_delegation_amount: &BigUint,
+        user_lkmex_staked_amount: &BigUint,
         total_delegation_supply: &BigUint,
+        total_lkmex_staked: &BigUint,
     ) -> BigUint {
         let project_duration_weeks = project.get_duration_in_weeks() as u32;
-        let rewards_supply_per_week = &project.reward_supply / project_duration_weeks;
+        let rewards_supply_per_week_delegation =
+            &project.delegation_reward_supply / project_duration_weeks;
+        let rewards_supply_per_week_lkmex = &project.lkmex_reward_supply / project_duration_weeks;
 
-        &(&rewards_supply_per_week * user_delegation_amount) / total_delegation_supply
+        let rewards_delegation = self.calculate_ratio(
+            &rewards_supply_per_week_delegation,
+            user_delegation_amount,
+            total_delegation_supply,
+        );
+        let rewards_lkmex = self.calculate_ratio(
+            &rewards_supply_per_week_lkmex,
+            user_lkmex_staked_amount,
+            total_lkmex_staked,
+        );
+
+        rewards_delegation + rewards_lkmex
+    }
+
+    fn calculate_ratio(&self, amount: &BigUint, part: &BigUint, total: &BigUint) -> BigUint {
+        if total == &0 {
+            return BigUint::zero();
+        }
+
+        &(amount * part) / total
     }
 
     #[inline]
@@ -180,9 +223,6 @@ pub trait RewardsModule: crate::project::ProjectModule {
 
     #[storage_mapper("rewardsCheckpoints")]
     fn rewards_checkpoints(&self) -> VecMapper<RewardsCheckpoint<Self::Api>>;
-
-    #[storage_mapper("rootHashKnown")]
-    fn root_hash_known(&self, root_hash: &ManagedHash<Self::Api>) -> SingleValueMapper<bool>;
 
     #[storage_mapper("rewardsClaimed")]
     fn rewards_claimed(&self, user: &ManagedAddress, week: Week) -> SingleValueMapper<bool>;

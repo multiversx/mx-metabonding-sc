@@ -8,9 +8,9 @@ mod rewards;
 use core::borrow::Borrow;
 
 use elrond_wasm::api::ED25519_SIGNATURE_BYTE_LEN;
-use rewards::{ManagedHash, RewardsCheckpoint, Week};
+use rewards::{RewardsCheckpoint, Week};
 
-const MAX_DATA_LEN: usize = 120; // 32 * 3 bytes, with some extra for high BigUint values
+const MAX_DATA_LEN: usize = 80; // 4 + 32 + 32, with some extra for high BigUint values
 
 pub type Signature<M> = ManagedByteArray<M, ED25519_SIGNATURE_BYTE_LEN>;
 
@@ -40,6 +40,7 @@ pub trait Metabonding:
         &self,
         week: Week,
         user_delegation_amount: BigUint,
+        user_lkmex_staked_amount: BigUint,
         signature: Signature<Self::Api>,
     ) {
         require!(self.not_paused(), "May not claim rewards while paused");
@@ -55,9 +56,10 @@ pub trait Metabonding:
 
         let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
         self.verify_signature(
+            week,
             &caller,
-            &checkpoint.root_hash,
             &user_delegation_amount,
+            &user_lkmex_staked_amount,
             &signature,
         );
 
@@ -66,7 +68,9 @@ pub trait Metabonding:
         let weekly_rewards = self.get_rewards_for_week(
             week,
             &user_delegation_amount,
+            &user_lkmex_staked_amount,
             &checkpoint.total_delegation_supply,
+            &checkpoint.total_lkmex_staked,
         );
         if !weekly_rewards.is_empty() {
             for (id, payment) in weekly_rewards.iter() {
@@ -86,14 +90,17 @@ pub trait Metabonding:
 
     fn verify_signature(
         &self,
+        week: Week,
         caller: &ManagedAddress,
-        root_hash: &ManagedHash<Self::Api>,
         user_delegation_amount: &BigUint,
+        user_lkmex_staked_amount: &BigUint,
         signature: &Signature<Self::Api>,
     ) {
-        let mut data = caller.as_managed_buffer().clone();
-        data.append(root_hash.as_managed_buffer());
+        let mut data = ManagedBuffer::new();
+        let _ = week.dep_encode(&mut data);
+        data.append(caller.as_managed_buffer());
         data.append(&user_delegation_amount.to_bytes_be_buffer());
+        data.append(&user_lkmex_staked_amount.to_bytes_be_buffer());
 
         let signer: ManagedAddress = self.signer().get();
         let valid_signature = self.crypto().verify_ed25519_managed::<MAX_DATA_LEN>(
