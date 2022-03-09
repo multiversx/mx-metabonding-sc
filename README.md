@@ -17,7 +17,7 @@ Projects can only be added by the contract owner. Each project has:
 - a duration in weeks
 - a percentage of how much of the rewards is distributed to LKMEX stakers (the rest will be distributed to EGLD stakers)
 
-Projects can also be remove by the owner if deemed necessary. All leftover funds will be returned to the project owner in such a scenario.
+Projects can also be removed by the owner if deemed necessary. All leftover funds will be returned to the project owner in such a scenario.
 
 A project is not considered "active" until all reward tokens have been deposited.
 
