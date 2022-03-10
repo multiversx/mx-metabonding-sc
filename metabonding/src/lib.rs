@@ -99,8 +99,8 @@ pub trait Metabonding:
         let mut data = ManagedBuffer::new();
         let _ = week.dep_encode(&mut data);
         data.append(caller.as_managed_buffer());
-        data.append(&user_delegation_amount.to_bytes_be_buffer());
-        data.append(&user_lkmex_staked_amount.to_bytes_be_buffer());
+        let _ = user_delegation_amount.dep_encode(&mut data);
+        let _ = user_lkmex_staked_amount.dep_encode(&mut data);
 
         let signer: ManagedAddress = self.signer().get();
         let valid_signature = self.crypto().verify_ed25519_managed::<MAX_DATA_LEN>(
