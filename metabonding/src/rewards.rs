@@ -74,6 +74,12 @@ pub trait RewardsModule: crate::project::ProjectModule + crate::util::UtilModule
             None => sc_panic!("Invalid project ID"),
         };
 
+        let current_week = self.get_current_week();
+        require!(
+            !project.is_expired(current_week, false),
+            "Project is expired"
+        );
+
         let total_reward_supply = project.lkmex_reward_supply + project.delegation_reward_supply;
         require!(
             project.reward_token == payment_token,
@@ -140,14 +146,18 @@ pub trait RewardsModule: crate::project::ProjectModule + crate::util::UtilModule
         total_delegation_supply: &BigUint,
         total_lkmex_staked: &BigUint,
     ) -> WeeklyRewards<Self::Api> {
+        let current_week = self.get_current_week();
         let mut project_ids = ManagedVec::new();
         let mut user_rewards = ManagedVec::new();
 
         for (id, project) in self.projects().iter() {
+            if !self.is_in_range(week, project.start_week, project.end_week) {
+                continue;
+            }
             if !self.rewards_deposited(&id).get() {
                 continue;
             }
-            if !self.is_in_range(week, project.start_week, project.end_week) {
+            if project.is_expired(current_week, true) {
                 continue;
             }
 
