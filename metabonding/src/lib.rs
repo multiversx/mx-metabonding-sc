@@ -2,13 +2,12 @@
 
 elrond_wasm::imports!();
 
+mod access_control;
+mod common_storage;
+mod math;
 mod project;
 mod rewards;
-mod util;
-
-use core::borrow::Borrow;
-use rewards::{RewardsCheckpoint, Week};
-use util::Signature;
+mod validation;
 
 /// Source code for the pause module:
 /// https://github.com/ElrondNetwork/elrond-wasm-rs/blob/master/elrond-wasm-modules/src/pause.rs
@@ -17,7 +16,10 @@ pub trait Metabonding:
     elrond_wasm_modules::pause::PauseModule
     + project::ProjectModule
     + rewards::RewardsModule
-    + util::UtilModule
+    + access_control::AccessControlModule
+    + common_storage::CommonStorageModule
+    + math::MathModule
+    + validation::ValidationModule
 {
     #[init]
     fn init(
@@ -40,53 +42,5 @@ pub trait Metabonding:
     #[endpoint(changeSigner)]
     fn change_signer(&self, new_signer: ManagedAddress) {
         self.signer().set(&new_signer);
-    }
-
-    #[endpoint(claimRewards)]
-    fn claim_rewards(
-        &self,
-        week: Week,
-        user_delegation_amount: BigUint,
-        user_lkmex_staked_amount: BigUint,
-        signature: Signature<Self::Api>,
-    ) {
-        require!(self.not_paused(), "May not claim rewards while paused");
-
-        let caller = self.blockchain().get_caller();
-        require!(
-            !self.rewards_claimed(&caller, week).get(),
-            "Already claimed rewards for this week"
-        );
-
-        let last_checkpoint_week = self.get_last_checkpoint_week();
-        require!(week <= last_checkpoint_week, "No checkpoint for week yet");
-
-        let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
-        self.verify_signature(
-            week,
-            &caller,
-            &user_delegation_amount,
-            &user_lkmex_staked_amount,
-            &signature,
-        );
-
-        self.rewards_claimed(&caller, week).set(&true);
-
-        let weekly_rewards = self.get_rewards_for_week(
-            week,
-            &user_delegation_amount,
-            &user_lkmex_staked_amount,
-            &checkpoint.total_delegation_supply,
-            &checkpoint.total_lkmex_staked,
-        );
-        if !weekly_rewards.is_empty() {
-            for (id, payment) in weekly_rewards.iter() {
-                self.leftover_project_funds(id.borrow())
-                    .update(|leftover| *leftover -= &payment.amount);
-            }
-
-            self.send()
-                .direct_multi(&caller, &weekly_rewards.payments, &[]);
-        }
     }
 }

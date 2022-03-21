@@ -1,16 +1,16 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::rewards::Week;
+use crate::{
+    common_storage::{EPOCHS_IN_WEEK, MAX_PERCENTAGE},
+    rewards::Week,
+};
 use core::convert::TryInto;
-use elrond_codec::TopEncode;
 
-const EPOCHS_IN_WEEK: Epoch = 7;
 const PROJECT_EXPIRATION_WEEKS: Week = 4;
 const MAX_PROJECT_ID_LEN: usize = 10;
 const MIN_GAS_FOR_CLEAR: u64 = 5_000_000;
 const INVALID_PROJECT_ID_ERR_MSG: &[u8] = b"Invalid project ID";
-pub const MAX_PERCENTAGE: u64 = 100;
 
 pub type ProjectId<M> = ManagedBuffer<M>;
 pub type ProjectAsMultiResult<M> =
@@ -52,7 +52,7 @@ impl<M: ManagedTypeApi> Project<M> {
 }
 
 #[elrond_wasm::module]
-pub trait ProjectModule {
+pub trait ProjectModule: crate::common_storage::CommonStorageModule {
     #[only_owner]
     #[endpoint(addProject)]
     fn add_project(
@@ -109,10 +109,7 @@ pub trait ProjectModule {
     #[only_owner]
     #[endpoint(removeProject)]
     fn remove_project(&self, project_id: ProjectId<Self::Api>) {
-        let project: Project<Self::Api> = match self.projects().get(&project_id) {
-            Some(p) => p,
-            None => sc_panic!(INVALID_PROJECT_ID_ERR_MSG),
-        };
+        let project = self.get_project_or_panic(&project_id);
         self.clear_and_refund_project(&project_id, &project.reward_token);
     }
 
@@ -182,10 +179,13 @@ pub trait ProjectModule {
         &self,
         project_id: ProjectId<Self::Api>,
     ) -> ProjectAsMultiResult<Self::Api> {
-        match self.projects().get(&project_id) {
-            Some(p) => p.into_multiresult(),
-            None => sc_panic!(INVALID_PROJECT_ID_ERR_MSG),
-        }
+        self.get_project_or_panic(&project_id).into_multiresult()
+    }
+
+    fn get_project_or_panic(&self, project_id: &ProjectId<Self::Api>) -> Project<Self::Api> {
+        self.projects()
+            .get(&project_id)
+            .unwrap_or_else(|| sc_panic!(INVALID_PROJECT_ID_ERR_MSG))
     }
 
     #[view(getCurrentWeek)]
@@ -200,16 +200,6 @@ pub trait ProjectModule {
                 .unwrap_unchecked()
         }
     }
-
-    fn get_and_clear<T: TopEncode + TopDecode>(&self, mapper: &SingleValueMapper<T>) -> T {
-        let value = mapper.get();
-        mapper.clear();
-
-        value
-    }
-
-    #[storage_mapper("firstWeekStartEpoch")]
-    fn first_week_start_epoch(&self) -> SingleValueMapper<Epoch>;
 
     #[storage_mapper("projects")]
     fn projects(&self) -> MapMapper<ProjectId<Self::Api>, Project<Self::Api>>;

@@ -1,25 +1,14 @@
 elrond_wasm::imports!();
 
-use elrond_wasm::api::ED25519_SIGNATURE_BYTE_LEN;
-
 use crate::rewards::Week;
+use elrond_wasm::api::ED25519_SIGNATURE_BYTE_LEN;
 
 const MAX_DATA_LEN: usize = 80; // 4 + 32 + 32, with some extra for high BigUint values
 
 pub type Signature<M> = ManagedByteArray<M, ED25519_SIGNATURE_BYTE_LEN>;
 
 #[elrond_wasm::module]
-pub trait UtilModule {
-    fn require_caller_owner_or_signer(&self) {
-        let caller = self.blockchain().get_caller();
-        let owner = self.blockchain().get_owner_address();
-        let signer = self.signer().get();
-        require!(
-            caller == owner || caller == signer,
-            "Only owner or signer may call this function"
-        );
-    }
-
+pub trait ValidationModule: crate::common_storage::CommonStorageModule {
     fn verify_signature(
         &self,
         week: Week,
@@ -42,20 +31,4 @@ pub trait UtilModule {
         );
         require!(valid_signature, "Invalid signature");
     }
-
-    #[inline]
-    fn is_in_range(&self, value: Week, min: Week, max: Week) -> bool {
-        (min..=max).contains(&value)
-    }
-
-    fn calculate_ratio(&self, amount: &BigUint, part: &BigUint, total: &BigUint) -> BigUint {
-        if total == &0 {
-            return BigUint::zero();
-        }
-
-        &(amount * part) / total
-    }
-
-    #[storage_mapper("signer")]
-    fn signer(&self) -> SingleValueMapper<ManagedAddress>;
 }
