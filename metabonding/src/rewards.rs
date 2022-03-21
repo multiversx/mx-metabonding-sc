@@ -89,15 +89,15 @@ pub trait RewardsModule: crate::project::ProjectModule {
         user_address: ManagedAddress,
         number_weeks_to_look_back: Week,
     ) -> MultiValueEncoded<Week> {
-        let current_week = self.get_current_week();
-        let start_week = if number_weeks_to_look_back >= current_week {
+        let last_checkpoint_week = self.get_last_checkpoint_week();
+        let start_week = if number_weeks_to_look_back >= last_checkpoint_week {
             1
         } else {
-            current_week - number_weeks_to_look_back
+            last_checkpoint_week - number_weeks_to_look_back
         };
 
         let mut weeks_list = MultiValueEncoded::new();
-        for week in start_week..=current_week {
+        for week in start_week..=last_checkpoint_week {
             if !self.rewards_claimed(&user_address, week).get() {
                 weeks_list.push(week);
             }
