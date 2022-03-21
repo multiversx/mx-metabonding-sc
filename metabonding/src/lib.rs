@@ -78,13 +78,8 @@ pub trait Metabonding:
                     .update(|leftover| *leftover -= &payment.amount);
             }
 
-            let _ = Self::Api::send_api_impl().direct_multi_esdt_transfer_execute(
-                &caller,
-                &weekly_rewards.payments,
-                0,
-                &ManagedBuffer::new(),
-                &ManagedArgBuffer::new_empty(),
-            );
+            self.send()
+                .direct_multi(&caller, &weekly_rewards.payments, &[]);
         }
     }
 
