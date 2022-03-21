@@ -52,8 +52,7 @@
                 "to": "sc:meta",
                 "function": "getUserClaimableWeeks",
                 "arguments": [
-                    "address:user1",
-                    "1"
+                    "address:user1"
                 ]
             },
             "expect": {
@@ -127,8 +126,7 @@
                 "to": "sc:meta",
                 "function": "getUserClaimableWeeks",
                 "arguments": [
-                    "address:user1",
-                    "1"
+                    "address:user1"
                 ]
             },
             "expect": {
