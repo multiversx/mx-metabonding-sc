@@ -4,21 +4,20 @@ elrond_wasm::imports!();
 
 mod project;
 mod rewards;
+mod util;
 
 use core::borrow::Borrow;
-
-use elrond_wasm::api::ED25519_SIGNATURE_BYTE_LEN;
 use rewards::{RewardsCheckpoint, Week};
-
-const MAX_DATA_LEN: usize = 80; // 4 + 32 + 32, with some extra for high BigUint values
-
-pub type Signature<M> = ManagedByteArray<M, ED25519_SIGNATURE_BYTE_LEN>;
+use util::Signature;
 
 /// Source code for the pause module:
 /// https://github.com/ElrondNetwork/elrond-wasm-rs/blob/master/elrond-wasm-modules/src/pause.rs
 #[elrond_wasm::contract]
 pub trait Metabonding:
-    elrond_wasm_modules::pause::PauseModule + project::ProjectModule + rewards::RewardsModule
+    elrond_wasm_modules::pause::PauseModule
+    + project::ProjectModule
+    + rewards::RewardsModule
+    + util::UtilModule
 {
     #[init]
     fn init(&self, signer: ManagedAddress) {
@@ -82,30 +81,4 @@ pub trait Metabonding:
                 .direct_multi(&caller, &weekly_rewards.payments, &[]);
         }
     }
-
-    fn verify_signature(
-        &self,
-        week: Week,
-        caller: &ManagedAddress,
-        user_delegation_amount: &BigUint,
-        user_lkmex_staked_amount: &BigUint,
-        signature: &Signature<Self::Api>,
-    ) {
-        let mut data = ManagedBuffer::new();
-        let _ = week.dep_encode(&mut data);
-        data.append(caller.as_managed_buffer());
-        let _ = user_delegation_amount.dep_encode(&mut data);
-        let _ = user_lkmex_staked_amount.dep_encode(&mut data);
-
-        let signer: ManagedAddress = self.signer().get();
-        let valid_signature = self.crypto().verify_ed25519_managed::<MAX_DATA_LEN>(
-            signer.as_managed_byte_array(),
-            &data,
-            signature,
-        );
-        require!(valid_signature, "Invalid signature");
-    }
-
-    #[storage_mapper("signer")]
-    fn signer(&self) -> SingleValueMapper<ManagedAddress>;
 }

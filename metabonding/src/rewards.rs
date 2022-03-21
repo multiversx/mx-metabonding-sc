@@ -36,8 +36,7 @@ impl<M: ManagedTypeApi> WeeklyRewards<M> {
 }
 
 #[elrond_wasm::module]
-pub trait RewardsModule: crate::project::ProjectModule {
-    #[only_owner]
+pub trait RewardsModule: crate::project::ProjectModule + crate::util::UtilModule {
     #[endpoint(addRewardsCheckpoint)]
     fn add_rewards_checkpoint(
         &self,
@@ -45,6 +44,8 @@ pub trait RewardsModule: crate::project::ProjectModule {
         total_delegation_supply: BigUint,
         total_lkmex_staked: BigUint,
     ) {
+        self.require_caller_owner_or_signer();
+
         let last_checkpoint_week = self.get_last_checkpoint_week();
         let current_week = self.get_current_week();
         require!(
@@ -203,22 +204,9 @@ pub trait RewardsModule: crate::project::ProjectModule {
         rewards_delegation + rewards_lkmex
     }
 
-    fn calculate_ratio(&self, amount: &BigUint, part: &BigUint, total: &BigUint) -> BigUint {
-        if total == &0 {
-            return BigUint::zero();
-        }
-
-        &(amount * part) / total
-    }
-
     #[inline]
     fn get_last_checkpoint_week(&self) -> Week {
         self.rewards_checkpoints().len()
-    }
-
-    #[inline]
-    fn is_in_range(&self, value: Week, min: Week, max: Week) -> bool {
-        (min..=max).contains(&value)
     }
 
     #[storage_mapper("rewardsCheckpoints")]
