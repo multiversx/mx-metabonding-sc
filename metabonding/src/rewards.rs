@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use crate::{
-    project::{Project, ProjectId},
+    project::{Project, ProjectId, PROJECT_EXPIRATION_WEEKS},
     validation::Signature,
 };
 use core::{borrow::Borrow, ops::Deref};
@@ -116,6 +116,12 @@ pub trait RewardsModule:
         let last_checkpoint_week = self.get_last_checkpoint_week();
         require!(week <= last_checkpoint_week, "No checkpoint for week yet");
 
+        let current_week = self.get_current_week();
+        require!(
+            current_week <= week + PROJECT_EXPIRATION_WEEKS,
+            "Claiming too late"
+        );
+
         let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
         self.verify_signature(
             week,
@@ -146,16 +152,12 @@ pub trait RewardsModule:
     }
 
     #[view(getUserClaimableWeeks)]
-    fn get_user_claimable_weeks(
-        &self,
-        user_address: ManagedAddress,
-        number_weeks_to_look_back: Week,
-    ) -> MultiValueEncoded<Week> {
+    fn get_user_claimable_weeks(&self, user_address: ManagedAddress) -> MultiValueEncoded<Week> {
         let last_checkpoint_week = self.get_last_checkpoint_week();
-        let start_week = if number_weeks_to_look_back >= last_checkpoint_week {
+        let start_week = if PROJECT_EXPIRATION_WEEKS >= last_checkpoint_week {
             1
         } else {
-            last_checkpoint_week - number_weeks_to_look_back
+            last_checkpoint_week - PROJECT_EXPIRATION_WEEKS
         };
 
         let mut weeks_list = MultiValueEncoded::new();

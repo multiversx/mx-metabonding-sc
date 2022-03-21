@@ -7,7 +7,7 @@ use crate::{
 };
 use core::convert::TryInto;
 
-const PROJECT_EXPIRATION_WEEKS: Week = 4;
+pub const PROJECT_EXPIRATION_WEEKS: Week = 4;
 const MAX_PROJECT_ID_LEN: usize = 10;
 const MIN_GAS_FOR_CLEAR: u64 = 5_000_000;
 const INVALID_PROJECT_ID_ERR_MSG: &[u8] = b"Invalid project ID";
