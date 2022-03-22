@@ -94,6 +94,8 @@ pub trait RewardsModule:
         );
         require!(total_reward_supply == payment_amount, "Invalid amount");
 
+        self.leftover_project_funds(&project_id)
+            .set(&total_reward_supply);
         self.rewards_deposited(&project_id).set(&true);
     }
 

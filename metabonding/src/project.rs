@@ -90,7 +90,6 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
         );
 
         self.project_owner(&project_id).set(&project_owner);
-        self.leftover_project_funds(&project_id).set(&reward_supply);
 
         let lkmex_reward_supply = &reward_supply * lkmex_rewards_percentage / MAX_PERCENTAGE;
         let delegation_reward_supply = &reward_supply - &lkmex_reward_supply;
