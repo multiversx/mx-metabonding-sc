@@ -35,7 +35,7 @@ jobs:
           # Setting $HOME is required by erdpy.
           export HOME=$ELROND_HOME
           cd $REPO_PATH
-          erdpy --verbose contract build
+          erdpy --verbose contract build ./metabonding
 
       - name: Save artifacts
         uses: actions/upload-artifact@v2
