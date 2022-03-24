@@ -70,12 +70,6 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
             "Invalid reward token"
         );
         require!(reward_supply > 0, "Reward supply cannot be 0");
-
-        let current_week = self.get_current_week();
-        require!(
-            start_week > current_week,
-            "Start week must be in the future"
-        );
         require!(duration_weeks > 0, "Invalid duration");
 
         require!(
