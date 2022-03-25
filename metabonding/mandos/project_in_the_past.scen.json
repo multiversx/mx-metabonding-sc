@@ -194,6 +194,19 @@
                 "gas": "*",
                 "refund": "*"
             }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:PROJ-123456": "35,714,285"
+                    }
+                },
+                "+": ""
+            }
         }
     ]
 }
