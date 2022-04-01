@@ -97,22 +97,6 @@ where
         }
     }
 
-    pub fn advance_one_week(&mut self) {
-        self.current_epoch += EPOCHS_IN_WEEK;
-        self.b_mock.set_block_epoch(self.current_epoch);
-    }
-
-    pub fn get_current_week(&mut self) -> Week {
-        let mut week = 0;
-        self.b_mock
-            .execute_query(&self.mb_wrapper, |sc| {
-                week = sc.get_current_week();
-            })
-            .assert_ok();
-
-        week
-    }
-
     pub fn add_default_projects(&mut self) {
         let first_proj_owner = self.first_project_owner.clone();
         self.call_add_project(
@@ -157,6 +141,27 @@ where
             TOTAL_SECOND_PROJ_TOKENS,
         )
         .assert_ok();
+    }
+}
+
+impl<MetabondingObjBuilder> MetabondingSetup<MetabondingObjBuilder>
+where
+    MetabondingObjBuilder: 'static + Copy + Fn() -> metabonding::ContractObj<DebugApi>,
+{
+    pub fn advance_one_week(&mut self) {
+        self.current_epoch += EPOCHS_IN_WEEK;
+        self.b_mock.set_block_epoch(self.current_epoch);
+    }
+
+    pub fn get_current_week(&mut self) -> Week {
+        let mut week = 0;
+        self.b_mock
+            .execute_query(&self.mb_wrapper, |sc| {
+                week = sc.get_current_week();
+            })
+            .assert_ok();
+
+        week
     }
 
     pub fn call_add_project(
