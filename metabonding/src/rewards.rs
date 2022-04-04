@@ -81,6 +81,13 @@ pub trait RewardsModule:
         let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let project = self.get_project_or_panic(&project_id);
 
+        let caller = self.blockchain().get_caller();
+        let project_owner = self.project_owner(&project_id).get();
+        require!(
+            caller == project_owner,
+            "Only project owner may deposit the rewards"
+        );
+
         let current_week = self.get_current_week();
         require!(
             !project.is_expired(current_week, false),
