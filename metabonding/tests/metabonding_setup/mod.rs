@@ -51,8 +51,19 @@ where
         let owner_addr = b_mock.create_user_account(&rust_zero);
         let first_project_owner = b_mock.create_user_account(&rust_zero);
         let second_project_owner = b_mock.create_user_account(&rust_zero);
-        let first_user_addr = b_mock.create_user_account(&rust_zero);
-        let second_user_addr = b_mock.create_user_account(&rust_zero);
+
+        // need to create some fixed addresses to reuse the signatures from mandos
+        // address:user1 from mandos
+        let first_user_addr = Address::from(hex_literal::hex!(
+            "75736572315F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F"
+        ));
+        b_mock.create_user_account_fixed_address(&first_user_addr, &rust_zero);
+
+        // address:user2 from mandos
+        let second_user_addr = Address::from(hex_literal::hex!(
+            "75736572325F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F"
+        ));
+        b_mock.create_user_account_fixed_address(&second_user_addr, &rust_zero);
 
         b_mock.set_esdt_balance(
             &first_project_owner,
@@ -142,12 +153,24 @@ where
         )
         .assert_ok();
     }
+
+    pub fn add_default_checkpoints(&mut self) {
+        self.set_current_epoch(20);
+
+        self.call_add_rewards_checkpoint(1, 100_000, 0).assert_ok();
+        self.call_add_rewards_checkpoint(2, 200_000, 0).assert_ok();
+    }
 }
 
 impl<MetabondingObjBuilder> MetabondingSetup<MetabondingObjBuilder>
 where
     MetabondingObjBuilder: 'static + Copy + Fn() -> metabonding::ContractObj<DebugApi>,
 {
+    pub fn set_current_epoch(&mut self, epoch: u64) {
+        self.current_epoch = epoch;
+        self.b_mock.set_block_epoch(epoch);
+    }
+
     pub fn advance_one_week(&mut self) {
         self.current_epoch += EPOCHS_IN_WEEK;
         self.b_mock.set_block_epoch(self.current_epoch);
@@ -162,6 +185,17 @@ where
             .assert_ok();
 
         week
+    }
+
+    pub fn call_unpause(&mut self) -> TxResult {
+        self.b_mock.execute_tx(
+            &self.owner_addr,
+            &self.mb_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.unpause_endpoint();
+            },
+        )
     }
 
     pub fn call_add_project(
