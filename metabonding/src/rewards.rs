@@ -124,14 +124,7 @@ pub trait RewardsModule:
 
         let last_checkpoint_week = self.get_last_checkpoint_week();
         require!(week <= last_checkpoint_week, "No checkpoint for week yet");
-
-        let current_week = self.get_current_week();
-        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
-        require!(
-            current_week <= rewards_nr_first_grace_weeks
-                || current_week <= week + PROJECT_EXPIRATION_WEEKS,
-            "Claiming too late"
-        );
+        require!(self.is_claim_in_time(week), "Claiming too late");
 
         let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
         self.verify_signature(
@@ -165,7 +158,12 @@ pub trait RewardsModule:
     #[view(getUserClaimableWeeks)]
     fn get_user_claimable_weeks(&self, user_address: ManagedAddress) -> MultiValueEncoded<Week> {
         let last_checkpoint_week = self.get_last_checkpoint_week();
-        let start_week = if PROJECT_EXPIRATION_WEEKS >= last_checkpoint_week {
+        let current_week = self.get_current_week();
+        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
+        
+        let start_week = if current_week <= rewards_nr_first_grace_weeks
+            || PROJECT_EXPIRATION_WEEKS >= last_checkpoint_week
+        {
             1
         } else {
             last_checkpoint_week - PROJECT_EXPIRATION_WEEKS
@@ -280,6 +278,14 @@ pub trait RewardsModule:
         );
 
         rewards_delegation + rewards_lkmex
+    }
+
+    fn is_claim_in_time(&self, claim_week: Week) -> bool {
+        let current_week = self.get_current_week();
+        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
+
+        current_week <= rewards_nr_first_grace_weeks
+            || current_week <= claim_week + PROJECT_EXPIRATION_WEEKS
     }
 
     #[inline]
