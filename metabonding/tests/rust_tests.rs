@@ -305,4 +305,9 @@ fn grace_period_test() {
     // get claimable weeks - user can now claim for week 1 and 2
     let claimable_weeks = mb_setup.get_user_claimable_weeks(&first_user_addr);
     assert_eq!(claimable_weeks, &[1usize, 2usize]);
+
+    // user claim week 1 ok
+    mb_setup
+        .call_claim_rewards(&first_user_addr, 1, 25_000, 0, &sig_first_user_week_1)
+        .assert_ok();
 }
