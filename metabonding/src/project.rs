@@ -27,11 +27,9 @@ pub struct Project<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> Project<M> {
-    pub fn is_expired(&self, current_week: Week, were_rewards_deposited: bool) -> bool {
-        if current_week > self.end_week + PROJECT_EXPIRATION_WEEKS {
-            return true;
-        }
-        !were_rewards_deposited && current_week >= self.start_week
+    #[inline]
+    pub fn is_expired(&self, current_week: Week) -> bool {
+        current_week > self.end_week + PROJECT_EXPIRATION_WEEKS
     }
 
     #[inline]
@@ -70,12 +68,6 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
             "Invalid reward token"
         );
         require!(reward_supply > 0, "Reward supply cannot be 0");
-
-        let current_week = self.get_current_week();
-        require!(
-            start_week > current_week,
-            "Start week must be in the future"
-        );
         require!(duration_weeks > 0, "Invalid duration");
 
         require!(
@@ -132,8 +124,7 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
                 clear_prev_id = false;
             }
 
-            let were_rewards_deposited = self.rewards_deposited(&id).get();
-            if project.is_expired(current_week, were_rewards_deposited) {
+            if project.is_expired(current_week) {
                 prev_token = project.reward_token;
                 prev_id = id;
                 clear_prev_id = true;

@@ -89,10 +89,7 @@ pub trait RewardsModule:
         );
 
         let current_week = self.get_current_week();
-        require!(
-            !project.is_expired(current_week, false),
-            "Project is expired"
-        );
+        require!(!project.is_expired(current_week), "Project is expired");
 
         let total_reward_supply = project.lkmex_reward_supply + project.delegation_reward_supply;
         require!(
@@ -223,7 +220,7 @@ pub trait RewardsModule:
             if !self.rewards_deposited(&id).get() {
                 continue;
             }
-            if project.is_expired(current_week, true) {
+            if project.is_expired(current_week) {
                 continue;
             }
 
