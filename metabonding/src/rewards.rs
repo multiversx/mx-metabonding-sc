@@ -126,8 +126,10 @@ pub trait RewardsModule:
         require!(week <= last_checkpoint_week, "No checkpoint for week yet");
 
         let current_week = self.get_current_week();
+        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
         require!(
-            current_week <= week + PROJECT_EXPIRATION_WEEKS,
+            current_week <= rewards_nr_first_grace_weeks
+                || current_week <= week + PROJECT_EXPIRATION_WEEKS,
             "Claiming too late"
         );
 
@@ -284,6 +286,9 @@ pub trait RewardsModule:
     fn get_last_checkpoint_week(&self) -> Week {
         self.rewards_checkpoints().len()
     }
+
+    #[storage_mapper("rewardsNrFirstGraceWeeks")]
+    fn rewards_nr_first_grace_weeks(&self) -> SingleValueMapper<Week>;
 
     #[storage_mapper("rewardsCheckpoints")]
     fn rewards_checkpoints(&self) -> VecMapper<RewardsCheckpoint<Self::Api>>;

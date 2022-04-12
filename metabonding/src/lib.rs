@@ -1,5 +1,7 @@
 #![no_std]
 
+use rewards::Week;
+
 elrond_wasm::imports!();
 
 pub mod access_control;
@@ -25,10 +27,18 @@ pub trait Metabonding:
     fn init(
         &self,
         signer: ManagedAddress,
+        #[var_args] opt_rewards_nr_first_grace_weeks: OptionalValue<Week>,
         #[var_args] opt_first_week_start_epoch: OptionalValue<u64>,
     ) {
         self.signer().set(&signer);
         self.set_paused(true);
+
+        let rewards_nr_first_grace_weeks = match opt_rewards_nr_first_grace_weeks {
+            OptionalValue::Some(nr) => nr,
+            OptionalValue::None => 0,
+        };
+        self.rewards_nr_first_grace_weeks()
+            .set(rewards_nr_first_grace_weeks);
 
         let first_week_start_epoch = match opt_first_week_start_epoch {
             OptionalValue::Some(epoch) => epoch,
