@@ -174,7 +174,7 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
 
     fn get_project_or_panic(&self, project_id: &ProjectId<Self::Api>) -> Project<Self::Api> {
         self.projects()
-            .get(&project_id)
+            .get(project_id)
             .unwrap_or_else(|| sc_panic!(INVALID_PROJECT_ID_ERR_MSG))
     }
 
