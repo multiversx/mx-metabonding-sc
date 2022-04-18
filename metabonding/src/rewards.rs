@@ -114,6 +114,10 @@ pub trait RewardsModule:
         require!(self.not_paused(), "May not claim rewards while paused");
 
         let caller = self.blockchain().get_caller();
+        let current_week = self.get_current_week();
+        let last_checkpoint_week = self.get_last_checkpoint_week();
+        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
+
         for arg_pair in arg_pairs {
             let (week, user_delegation_amount, user_lkmex_staked_amount, signature) =
                 arg_pair.into_tuple();
@@ -122,12 +126,7 @@ pub trait RewardsModule:
                 !self.rewards_claimed(&caller, week).get(),
                 "Already claimed rewards for this week"
             );
-
-            let last_checkpoint_week = self.get_last_checkpoint_week();
             require!(week <= last_checkpoint_week, "No checkpoint for week yet");
-
-            let current_week = self.get_current_week();
-            let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
             require!(
                 self.is_claim_in_time(week, current_week, rewards_nr_first_grace_weeks),
                 "Claiming too late"
