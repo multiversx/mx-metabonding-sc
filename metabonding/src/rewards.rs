@@ -10,6 +10,7 @@ use core::{borrow::Borrow, ops::Deref};
 pub type Week = usize;
 pub type PrettyRewards<M> =
     MultiValueEncoded<M, MultiValue3<ProjectId<M>, TokenIdentifier<M>, BigUint<M>>>;
+pub type ClaimArgPair<M> = MultiValue4<Week, BigUint<M>, BigUint<M>, Signature<M>>;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct RewardsCheckpoint<M: ManagedTypeApi> {
@@ -109,12 +110,7 @@ pub trait RewardsModule:
     /// - user_lkmex_staked_amount: BigUint,
     /// - signature: 120 bytes,
     #[endpoint(claimRewards)]
-    fn claim_rewards(
-        &self,
-        #[var_args] arg_pairs: MultiValueEncoded<
-            MultiValue4<Week, BigUint, BigUint, Signature<Self::Api>>,
-        >,
-    ) {
+    fn claim_rewards(&self, #[var_args] arg_pairs: MultiValueEncoded<ClaimArgPair<Self::Api>>) {
         require!(self.not_paused(), "May not claim rewards while paused");
 
         let caller = self.blockchain().get_caller();
