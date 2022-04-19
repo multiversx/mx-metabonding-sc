@@ -1,7 +1,5 @@
 use elrond_wasm::{
-    api::ED25519_SIGNATURE_BYTE_LEN,
-    elrond_codec::multi_types::OptionalValue,
-    types::{Address, MultiValueEncoded},
+    api::ED25519_SIGNATURE_BYTE_LEN, elrond_codec::multi_types::OptionalValue, types::Address,
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
@@ -347,18 +345,12 @@ where
     ) -> TxResult {
         self.b_mock
             .execute_tx(caller, &self.mb_wrapper, &rust_biguint!(0), |sc| {
-                let mut args = MultiValueEncoded::new();
-                args.push(
-                    (
-                        week,
-                        managed_biguint!(user_delegation_supply),
-                        managed_biguint!(user_lkmex_staked),
-                        signature.into(),
-                    )
-                        .into(),
+                sc.claim_rewards(
+                    week,
+                    managed_biguint!(user_delegation_supply),
+                    managed_biguint!(user_lkmex_staked),
+                    signature.into(),
                 );
-
-                sc.claim_rewards(args);
             })
     }
 

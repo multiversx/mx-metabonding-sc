@@ -10,7 +10,6 @@ use core::{borrow::Borrow, ops::Deref};
 pub type Week = usize;
 pub type PrettyRewards<M> =
     MultiValueEncoded<M, MultiValue3<ProjectId<M>, TokenIdentifier<M>, BigUint<M>>>;
-pub type ClaimArgPair<M> = MultiValue4<Week, BigUint<M>, BigUint<M>, Signature<M>>;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct RewardsCheckpoint<M: ManagedTypeApi> {
@@ -104,61 +103,58 @@ pub trait RewardsModule:
         self.rewards_deposited(&project_id).set(&true);
     }
 
-    /// args are pairs of:
-    /// - week: unsigned number,
-    /// - user_delegation_amount: BigUint,
-    /// - user_lkmex_staked_amount: BigUint,
-    /// - signature: 120 bytes,
     #[endpoint(claimRewards)]
-    fn claim_rewards(&self, #[var_args] arg_pairs: MultiValueEncoded<ClaimArgPair<Self::Api>>) {
+    fn claim_rewards(
+        &self,
+        week: Week,
+        user_delegation_amount: BigUint,
+        user_lkmex_staked_amount: BigUint,
+        signature: Signature<Self::Api>,
+    ) {
         require!(self.not_paused(), "May not claim rewards while paused");
 
         let caller = self.blockchain().get_caller();
-        let current_week = self.get_current_week();
+        require!(
+            !self.rewards_claimed(&caller, week).get(),
+            "Already claimed rewards for this week"
+        );
+
         let last_checkpoint_week = self.get_last_checkpoint_week();
+        require!(week <= last_checkpoint_week, "No checkpoint for week yet");
+
+        let current_week = self.get_current_week();
         let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
+        require!(
+            self.is_claim_in_time(week, current_week, rewards_nr_first_grace_weeks),
+            "Claiming too late"
+        );
 
-        for arg_pair in arg_pairs {
-            let (week, user_delegation_amount, user_lkmex_staked_amount, signature) =
-                arg_pair.into_tuple();
+        let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
+        self.verify_signature(
+            week,
+            &caller,
+            &user_delegation_amount,
+            &user_lkmex_staked_amount,
+            &signature,
+        );
 
-            require!(
-                !self.rewards_claimed(&caller, week).get(),
-                "Already claimed rewards for this week"
-            );
-            require!(week <= last_checkpoint_week, "No checkpoint for week yet");
-            require!(
-                self.is_claim_in_time(week, current_week, rewards_nr_first_grace_weeks),
-                "Claiming too late"
-            );
+        self.rewards_claimed(&caller, week).set(&true);
 
-            let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
-            self.verify_signature(
-                week,
-                &caller,
-                &user_delegation_amount,
-                &user_lkmex_staked_amount,
-                &signature,
-            );
-
-            self.rewards_claimed(&caller, week).set(&true);
-
-            let weekly_rewards = self.get_rewards_for_week(
-                week,
-                &user_delegation_amount,
-                &user_lkmex_staked_amount,
-                &checkpoint.total_delegation_supply,
-                &checkpoint.total_lkmex_staked,
-            );
-            if !weekly_rewards.is_empty() {
-                for (id, payment) in weekly_rewards.iter() {
-                    self.leftover_project_funds(id.borrow())
-                        .update(|leftover| *leftover -= &payment.amount);
-                }
-
-                self.send()
-                    .direct_multi(&caller, &weekly_rewards.payments, &[]);
+        let weekly_rewards = self.get_rewards_for_week(
+            week,
+            &user_delegation_amount,
+            &user_lkmex_staked_amount,
+            &checkpoint.total_delegation_supply,
+            &checkpoint.total_lkmex_staked,
+        );
+        if !weekly_rewards.is_empty() {
+            for (id, payment) in weekly_rewards.iter() {
+                self.leftover_project_funds(id.borrow())
+                    .update(|leftover| *leftover -= &payment.amount);
             }
+
+            self.send()
+                .direct_multi(&caller, &weekly_rewards.payments, &[]);
         }
     }
 
