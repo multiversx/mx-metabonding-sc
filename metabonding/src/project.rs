@@ -1,9 +1,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use elrond_wasm::api::StorageMapperApi;
+
 use crate::{
     common_storage::{EPOCHS_IN_WEEK, MAX_PERCENTAGE},
-    rewards::Week,
+    reward_data_types::*,
 };
 use core::convert::TryInto;
 
@@ -17,7 +19,7 @@ pub type ProjectAsMultiResult<M> =
     MultiValue5<TokenIdentifier<M>, BigUint<M>, BigUint<M>, Week, Week>;
 pub type Epoch = u64;
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, ManagedVecItem)]
 pub struct Project<M: ManagedTypeApi> {
     pub reward_token: TokenIdentifier<M>,
     pub delegation_reward_supply: BigUint<M>,
@@ -46,6 +48,36 @@ impl<M: ManagedTypeApi> Project<M> {
             self.end_week,
         )
             .into()
+    }
+}
+
+pub struct ProjectsMapperCache<M: ManagedTypeApi + StorageMapperApi> {
+    pub project_ids: ManagedVec<M, ProjectId<M>>,
+    pub projects: ManagedVec<M, Project<M>>,
+}
+
+impl<M: ManagedTypeApi + StorageMapperApi> ProjectsMapperCache<M> {
+    pub fn new(mapper: MapMapper<M, ProjectId<M>, Project<M>>) -> Self {
+        let mut project_ids = ManagedVec::new();
+        let mut projects = ManagedVec::new();
+        for (id, project) in mapper.iter() {
+            project_ids.push(id);
+            projects.push(project);
+        }
+
+        Self {
+            project_ids,
+            projects,
+        }
+    }
+
+    pub fn iter(
+        &self,
+    ) -> core::iter::Zip<
+        ManagedVecRefIterator<'_, M, ProjectId<M>>,
+        ManagedVecRefIterator<'_, M, Project<M>>,
+    > {
+        self.project_ids.iter().zip(self.projects.iter())
     }
 }
 
@@ -162,6 +194,11 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
         }
 
         all_ids.into()
+    }
+
+    #[inline]
+    fn get_projects_mapper_cache(&self) -> ProjectsMapperCache<Self::Api> {
+        ProjectsMapperCache::new(self.projects())
     }
 
     #[view(getProjectById)]

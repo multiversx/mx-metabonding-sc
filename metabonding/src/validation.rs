@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use crate::rewards::Week;
+use crate::reward_data_types::Week;
 use elrond_wasm::api::ED25519_SIGNATURE_BYTE_LEN;
 
 // week + caller + user_delegation_amount + user_lkmex_staked_amount

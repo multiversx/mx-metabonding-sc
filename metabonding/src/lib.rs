@@ -1,6 +1,5 @@
 #![no_std]
-
-use rewards::Week;
+#![feature(generic_associated_types)]
 
 elrond_wasm::imports!();
 
@@ -8,8 +7,11 @@ pub mod access_control;
 pub mod common_storage;
 pub mod math;
 pub mod project;
+pub mod reward_data_types;
 pub mod rewards;
 pub mod validation;
+
+use reward_data_types::Week;
 
 /// Source code for the pause module:
 /// https://github.com/ElrondNetwork/elrond-wasm-rs/blob/master/elrond-wasm-modules/src/pause.rs

@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use crate::rewards::Week;
+use crate::reward_data_types::Week;
 
 #[elrond_wasm::module]
 pub trait MathModule {
