@@ -208,14 +208,9 @@ pub trait RewardsModule:
         let mut user_rewards = ManagedVec::new();
 
         for (id, project) in projects_cache.iter() {
-            let mut is_zero_amount = false;
-            if !self.is_in_range(week, project.start_week, project.end_week) {
-                is_zero_amount = true;
-            } else if !self.rewards_deposited(&id).get() {
-                is_zero_amount = true;
-            } else if project.is_expired(current_week) {
-                is_zero_amount = true;
-            }
+            let is_zero_amount = !self.is_in_range(week, project.start_week, project.end_week)
+                || !self.rewards_deposited(&id).get()
+                || project.is_expired(current_week);
 
             let reward_amount = if is_zero_amount {
                 BigUint::zero()
