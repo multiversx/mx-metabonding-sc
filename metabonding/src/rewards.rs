@@ -14,13 +14,12 @@ pub type PrettyRewards<M> =
     MultiValueEncoded<M, MultiValue3<ProjectId<M>, TokenIdentifier<M>, BigUint<M>>>;
 pub type ClaimArgPair<M> = MultiValue4<Week, BigUint<M>, BigUint<M>, Signature<M>>;
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct RewardsCheckpoint<M: ManagedTypeApi> {
     pub total_delegation_supply: BigUint<M>,
     pub total_lkmex_staked: BigUint<M>,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct ClaimArgsWrapper<M: ManagedTypeApi> {
     pub week: Week,
     pub user_delegation_amount: BigUint<M>,
