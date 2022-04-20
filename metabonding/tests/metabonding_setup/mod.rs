@@ -362,6 +362,32 @@ where
             })
     }
 
+    pub fn call_claim_rewards_multiple(
+        &mut self,
+        caller: &Address,
+        args: &[(Week, u64, u64, &[u8; ED25519_SIGNATURE_BYTE_LEN])],
+    ) -> TxResult {
+        self.b_mock
+            .execute_tx(caller, &self.mb_wrapper, &rust_biguint!(0), |sc| {
+                let mut encoded_args = MultiValueEncoded::new();
+                for arg in args {
+                    let (week, user_delegation_supply, user_lkmex_staked, signature) = *arg;
+
+                    encoded_args.push(
+                        (
+                            week,
+                            managed_biguint!(user_delegation_supply),
+                            managed_biguint!(user_lkmex_staked),
+                            signature.into(),
+                        )
+                            .into(),
+                    );
+                }
+
+                sc.claim_rewards(encoded_args);
+            })
+    }
+
     pub fn get_user_claimable_weeks(&mut self, user_addr: &Address) -> Vec<Week> {
         let mut weeks = Vec::new();
 

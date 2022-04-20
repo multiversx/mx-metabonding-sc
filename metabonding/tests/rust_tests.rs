@@ -259,6 +259,51 @@ fn claim_rewards_test() {
 }
 
 #[test]
+fn claim_rewards_multiple_test() {
+    let mut mb_setup = MetabondingSetup::new(metabonding::contract_obj);
+    mb_setup.add_default_projects();
+    mb_setup.deposit_rewards_default_projects();
+    mb_setup.add_default_checkpoints();
+    mb_setup.call_unpause().assert_ok();
+
+    let first_user_addr = mb_setup.first_user_addr.clone();
+    let sig_first_user_week_1 = hex_literal::hex!("d47c0d67b2d25de8b4a3f43d91a2b5ccb522afac47321ae80bf89c90a4445b26adefa693ab685fa20891f736d74eb2dedc11c4b1a8d6e642fa28df270d6ebe08");
+    let sig_first_user_week_2 = hex_literal::hex!("b4aadf08eea4cc7c636922511943edbab2ff6ef2558528e0e7b03c7448367989fe860ac091be4d942304f04c86b1eaa0501f36e02819a3c628b4c53f3d3ac801");
+
+    // claim first two weeks user 1 ok
+    mb_setup
+        .call_claim_rewards_multiple(
+            &first_user_addr,
+            &[
+                (1, 25_000, 0, &sig_first_user_week_1),
+                (2, 25_000, 0, &sig_first_user_week_2),
+            ],
+        )
+        .assert_ok();
+
+    mb_setup.b_mock.check_esdt_balance(
+        &first_user_addr,
+        FIRST_PROJ_TOKEN,
+        &rust_biguint!(83_333_333 + 41_666_666),
+    );
+    mb_setup.b_mock.check_esdt_balance(
+        &first_user_addr,
+        SECOND_PROJ_TOKEN,
+        &rust_biguint!(50_000_000),
+    );
+
+    // try claim week 1 again
+    mb_setup
+        .call_claim_rewards(&first_user_addr, 1, 25_000, 0, &sig_first_user_week_1)
+        .assert_user_error("Already claimed rewards for this week");
+
+    // try claim week 2 again
+    mb_setup
+        .call_claim_rewards(&first_user_addr, 2, 25_000, 0, &sig_first_user_week_1)
+        .assert_user_error("Already claimed rewards for this week");
+}
+
+#[test]
 fn grace_period_test() {
     let mut mb_setup = MetabondingSetup::new(metabonding::contract_obj);
     mb_setup.add_default_projects();
