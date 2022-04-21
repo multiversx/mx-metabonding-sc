@@ -5,11 +5,14 @@ use crate::{
     project::{Project, ProjectId, PROJECT_EXPIRATION_WEEKS},
     validation::Signature,
 };
-use core::{borrow::Borrow, ops::Deref};
+
+const MAX_CLAIM_ARG_PAIRS: usize = 5;
+const CLAIM_NR_ARGS_PER_PAIR: usize = 4;
 
 pub type Week = usize;
 pub type PrettyRewards<M> =
     MultiValueEncoded<M, MultiValue3<ProjectId<M>, TokenIdentifier<M>, BigUint<M>>>;
+pub type ClaimArgPair<M> = MultiValue4<Week, BigUint<M>, BigUint<M>, Signature<M>>;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct RewardsCheckpoint<M: ManagedTypeApi> {
@@ -17,25 +20,11 @@ pub struct RewardsCheckpoint<M: ManagedTypeApi> {
     pub total_lkmex_staked: BigUint<M>,
 }
 
-pub struct WeeklyRewards<M: ManagedTypeApi> {
-    pub project_ids: ManagedVec<M, ProjectId<M>>,
-    pub payments: ManagedVec<M, EsdtTokenPayment<M>>,
-}
-
-impl<M: ManagedTypeApi> WeeklyRewards<M> {
-    pub fn iter(
-        &self,
-    ) -> core::iter::Zip<
-        ManagedVecRefIterator<M, ProjectId<M>>,
-        ManagedVecRefIterator<M, EsdtTokenPayment<M>>,
-    > {
-        self.project_ids.iter().zip(self.payments.iter())
-    }
-
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.project_ids.is_empty()
-    }
+pub struct ClaimArgsWrapper<M: ManagedTypeApi> {
+    pub week: Week,
+    pub user_delegation_amount: BigUint<M>,
+    pub user_lkmex_staked_amount: BigUint<M>,
+    pub checkpoint: RewardsCheckpoint<M>,
 }
 
 #[elrond_wasm::module]
@@ -103,58 +92,97 @@ pub trait RewardsModule:
         self.rewards_deposited(&project_id).set(&true);
     }
 
+    // Arguments are pairs of:
+    // week: number,
+    // user_delegation_amount: BigUint,
+    // user_lkmex_staked_amount: BigUint,
+    // signature: 120 bytes
     #[endpoint(claimRewards)]
-    fn claim_rewards(
-        &self,
-        week: Week,
-        user_delegation_amount: BigUint,
-        user_lkmex_staked_amount: BigUint,
-        signature: Signature<Self::Api>,
-    ) {
+    fn claim_rewards(&self, #[var_args] claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>) {
         require!(self.not_paused(), "May not claim rewards while paused");
+        require!(
+            claim_args.raw_len() / CLAIM_NR_ARGS_PER_PAIR <= MAX_CLAIM_ARG_PAIRS,
+            "Too many arguments"
+        );
 
         let caller = self.blockchain().get_caller();
-        require!(
-            !self.rewards_claimed(&caller, week).get(),
-            "Already claimed rewards for this week"
-        );
-
-        let last_checkpoint_week = self.get_last_checkpoint_week();
-        require!(week <= last_checkpoint_week, "No checkpoint for week yet");
-
         let current_week = self.get_current_week();
+        let last_checkpoint_week = self.get_last_checkpoint_week();
         let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
-        require!(
-            self.is_claim_in_time(week, current_week, rewards_nr_first_grace_weeks),
-            "Claiming too late"
-        );
 
-        let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
-        self.verify_signature(
-            week,
-            &caller,
-            &user_delegation_amount,
-            &user_lkmex_staked_amount,
-            &signature,
-        );
+        let mut args = ArrayVec::<ClaimArgsWrapper<Self::Api>, MAX_CLAIM_ARG_PAIRS>::new();
+        for arg in claim_args {
+            let (week, user_delegation_amount, user_lkmex_staked_amount, signature) =
+                arg.into_tuple();
 
-        self.rewards_claimed(&caller, week).set(&true);
+            require!(
+                !self.rewards_claimed(&caller, week).get(),
+                "Already claimed rewards for this week"
+            );
+            require!(week <= last_checkpoint_week, "No checkpoint for week yet");
+            require!(
+                self.is_claim_in_time(week, current_week, rewards_nr_first_grace_weeks),
+                "Claiming too late"
+            );
 
-        let weekly_rewards = self.get_rewards_for_week(
-            week,
-            &user_delegation_amount,
-            &user_lkmex_staked_amount,
-            &checkpoint.total_delegation_supply,
-            &checkpoint.total_lkmex_staked,
-        );
-        if !weekly_rewards.is_empty() {
-            for (id, payment) in weekly_rewards.iter() {
-                self.leftover_project_funds(id.borrow())
-                    .update(|leftover| *leftover -= &payment.amount);
+            let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
+            self.verify_signature(
+                week,
+                &caller,
+                &user_delegation_amount,
+                &user_lkmex_staked_amount,
+                &signature,
+            );
+
+            self.rewards_claimed(&caller, week).set(&true);
+
+            args.push(ClaimArgsWrapper {
+                week,
+                user_delegation_amount,
+                user_lkmex_staked_amount,
+                checkpoint,
+            });
+        }
+
+        let mut weekly_rewards = ManagedVec::new();
+        for (id, project) in self.projects().iter() {
+            let mut opt_rewards_for_project = None;
+
+            for arg in &args {
+                let opt_weekly_reward = self.get_weekly_reward_for_project(
+                    &id,
+                    &project,
+                    current_week,
+                    arg.week,
+                    &arg.user_delegation_amount,
+                    &arg.user_lkmex_staked_amount,
+                    &arg.checkpoint.total_delegation_supply,
+                    &arg.checkpoint.total_lkmex_staked,
+                );
+
+                if let Some(weekly_reward) = opt_weekly_reward {
+                    match &mut opt_rewards_for_project {
+                        Some(prev_amt) => *prev_amt += weekly_reward,
+                        None => opt_rewards_for_project = Some(weekly_reward),
+                    }
+                }
             }
 
-            self.send()
-                .direct_multi(&caller, &weekly_rewards.payments, &[]);
+            if let Some(rewards_for_project) = opt_rewards_for_project {
+                self.leftover_project_funds(&id)
+                    .update(|leftover| *leftover -= &rewards_for_project);
+
+                weekly_rewards.push(EsdtTokenPayment {
+                    token_type: EsdtTokenType::Fungible,
+                    token_identifier: project.reward_token,
+                    token_nonce: 0,
+                    amount: rewards_for_project,
+                });
+            }
+        }
+
+        if !weekly_rewards.is_empty() {
+            self.send().direct_multi(&caller, &weekly_rewards, &[]);
         }
     }
 
@@ -192,70 +220,55 @@ pub trait RewardsModule:
         user_lkmex_staked_amount: BigUint,
     ) -> PrettyRewards<Self::Api> {
         let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
-        let weekly_rewards = self.get_rewards_for_week(
-            week,
-            &user_delegation_amount,
-            &user_lkmex_staked_amount,
-            &checkpoint.total_delegation_supply,
-            &checkpoint.total_lkmex_staked,
-        );
-
+        let current_week = self.get_current_week();
         let mut rewards_pretty = MultiValueEncoded::new();
-        for (id, payment) in weekly_rewards.iter() {
-            rewards_pretty
-                .push((id.deref().clone(), payment.token_identifier, payment.amount).into());
+
+        for (id, project) in self.projects().iter() {
+            let opt_weekly_reward = self.get_weekly_reward_for_project(
+                &id,
+                &project,
+                current_week,
+                week,
+                &user_delegation_amount,
+                &user_lkmex_staked_amount,
+                &checkpoint.total_delegation_supply,
+                &checkpoint.total_lkmex_staked,
+            );
+
+            if let Some(weekly_reward) = opt_weekly_reward {
+                rewards_pretty.push((id, project.reward_token, weekly_reward).into());
+            }
         }
 
         rewards_pretty
     }
 
-    fn get_rewards_for_week(
+    fn get_weekly_reward_for_project(
         &self,
+        project_id: &ProjectId<Self::Api>,
+        project: &Project<Self::Api>,
+        current_week: Week,
         week: Week,
         user_delegation_amount: &BigUint,
         user_lkmex_staked_amount: &BigUint,
         total_delegation_supply: &BigUint,
         total_lkmex_staked: &BigUint,
-    ) -> WeeklyRewards<Self::Api> {
-        let current_week = self.get_current_week();
-        let mut project_ids = ManagedVec::new();
-        let mut user_rewards = ManagedVec::new();
-
-        for (id, project) in self.projects().iter() {
-            if !self.is_in_range(week, project.start_week, project.end_week) {
-                continue;
-            }
-            if !self.rewards_deposited(&id).get() {
-                continue;
-            }
-            if project.is_expired(current_week) {
-                continue;
-            }
-
-            let reward_amount = self.calculate_reward_amount(
-                &project,
-                user_delegation_amount,
-                user_lkmex_staked_amount,
-                total_delegation_supply,
-                total_lkmex_staked,
-            );
-            if reward_amount > 0 {
-                project_ids.push(id);
-
-                let user_payment = EsdtTokenPayment {
-                    token_type: EsdtTokenType::Fungible,
-                    token_identifier: project.reward_token,
-                    token_nonce: 0,
-                    amount: reward_amount,
-                };
-                user_rewards.push(user_payment);
-            }
+    ) -> Option<BigUint> {
+        if !self.is_in_range(week, project.start_week, project.end_week)
+            || !self.rewards_deposited(project_id).get()
+            || project.is_expired(current_week)
+        {
+            return None;
         }
 
-        WeeklyRewards {
-            project_ids,
-            payments: user_rewards,
-        }
+        let reward_amount = self.calculate_reward_amount(
+            project,
+            user_delegation_amount,
+            user_lkmex_staked_amount,
+            total_delegation_supply,
+            total_lkmex_staked,
+        );
+        Some(reward_amount)
     }
 
     fn calculate_reward_amount(

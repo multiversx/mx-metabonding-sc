@@ -1,5 +1,7 @@
 use elrond_wasm::{
-    api::ED25519_SIGNATURE_BYTE_LEN, elrond_codec::multi_types::OptionalValue, types::Address,
+    api::ED25519_SIGNATURE_BYTE_LEN,
+    elrond_codec::multi_types::OptionalValue,
+    types::{Address, MultiValueEncoded},
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
@@ -345,12 +347,44 @@ where
     ) -> TxResult {
         self.b_mock
             .execute_tx(caller, &self.mb_wrapper, &rust_biguint!(0), |sc| {
-                sc.claim_rewards(
-                    week,
-                    managed_biguint!(user_delegation_supply),
-                    managed_biguint!(user_lkmex_staked),
-                    signature.into(),
+                let mut args = MultiValueEncoded::new();
+                args.push(
+                    (
+                        week,
+                        managed_biguint!(user_delegation_supply),
+                        managed_biguint!(user_lkmex_staked),
+                        signature.into(),
+                    )
+                        .into(),
                 );
+
+                sc.claim_rewards(args);
+            })
+    }
+
+    pub fn call_claim_rewards_multiple(
+        &mut self,
+        caller: &Address,
+        args: &[(Week, u64, u64, &[u8; ED25519_SIGNATURE_BYTE_LEN])],
+    ) -> TxResult {
+        self.b_mock
+            .execute_tx(caller, &self.mb_wrapper, &rust_biguint!(0), |sc| {
+                let mut encoded_args = MultiValueEncoded::new();
+                for arg in args {
+                    let (week, user_delegation_supply, user_lkmex_staked, signature) = *arg;
+
+                    encoded_args.push(
+                        (
+                            week,
+                            managed_biguint!(user_delegation_supply),
+                            managed_biguint!(user_lkmex_staked),
+                            signature.into(),
+                        )
+                            .into(),
+                    );
+                }
+
+                sc.claim_rewards(encoded_args);
             })
     }
 
