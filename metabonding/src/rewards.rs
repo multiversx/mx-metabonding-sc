@@ -268,7 +268,11 @@ pub trait RewardsModule:
             total_delegation_supply,
             total_lkmex_staked,
         );
-        Some(reward_amount)
+        if reward_amount > 0 {
+            Some(reward_amount)
+        } else {
+            None
+        }
     }
 
     fn calculate_reward_amount(
