@@ -51,6 +51,15 @@ impl<M: ManagedTypeApi> Project<M> {
 
 #[elrond_wasm::module]
 pub trait ProjectModule: crate::common_storage::CommonStorageModule {
+    /// Adds a new project. Arguments:
+    /// - project_id: a unique ID of maximum 10 bytes
+    /// - project_owner - the owner of the project. They will receive any unclaimed funds for the projects.
+    /// - reward_token - the token ID of the token given as reward
+    /// - reward_supply - total supply of the reward token
+    /// - start_week - the week from which the project starts producing rewards. Has to be >= 1.
+    /// - duration_weeks - the duration in weeks of the project
+    /// - lkmex_rewards_percentage - The percentage of the total rewards which will be given to LKMEX stakers.
+    ///     Expected value range is [0, 100]
     #[only_owner]
     #[endpoint(addProject)]
     fn add_project(
@@ -97,6 +106,7 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
         require!(insert_result.is_none(), "ID already in use");
     }
 
+    /// Removes a project and gives any leftover funds to the project_owner
     #[only_owner]
     #[endpoint(removeProject)]
     fn remove_project(&self, project_id: ProjectId<Self::Api>) {
@@ -104,6 +114,9 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
         self.clear_and_refund_project(&project_id, &project.reward_token);
     }
 
+    /// Clears all expired projects and sends the leftover funds to the respective project_owner.
+    /// A project is considered expired if PROJECT_EXPIRATION_WEEKS weeks
+    ///     have passed since its last rewards week
     #[only_owner]
     #[endpoint(clearExpiredProjects)]
     fn clear_expired_projects(&self) -> OperationCompletionStatus {
@@ -164,6 +177,12 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
         all_ids.into()
     }
 
+    /// Returns a project by ID. The results are, in order:
+    /// - reward_token
+    /// - delegation_reward_supply
+    /// - lkmex_reward_supply
+    /// - start_week
+    /// - end_week
     #[view(getProjectById)]
     fn get_project_by_id(
         &self,

@@ -36,6 +36,13 @@ pub trait RewardsModule:
     + crate::math::MathModule
     + crate::validation::ValidationModule
 {
+    /// Adds a rewards checkpoint for the given Week. Only one checkpoint per week is allowed.
+    /// Checkpoints have to be added in order, and only if the current week is equal to the given week
+    ///     or the given week is in the past.
+    /// Only the SC owner or the signer may add checkpoints. Arguments:
+    /// - week - the week for which the checkpoint is added
+    /// - total_delegation_supply - The total amount of staked EGLD in the Delegation SC
+    /// - total_lkmex_staked - The total LKMEX staked in the Metabonding-Staking SC
     #[endpoint(addRewardsCheckpoint)]
     fn add_rewards_checkpoint(
         &self,
@@ -59,6 +66,7 @@ pub trait RewardsModule:
         self.rewards_checkpoints().push(&checkpoint);
     }
 
+    /// Deposits rewards for the given project. The full amount has to be deposited all at once.
     #[payable("*")]
     #[endpoint(depositRewards)]
     fn deposit_rewards(&self, project_id: ProjectId<Self::Api>) {
@@ -92,13 +100,14 @@ pub trait RewardsModule:
         self.rewards_deposited(&project_id).set(&true);
     }
 
-    // Arguments are pairs of:
-    // week: number,
-    // user_delegation_amount: BigUint,
-    // user_lkmex_staked_amount: BigUint,
-    // signature: 120 bytes
+    /// Claims rewards for the given weeks. Maximum of MAX_CLAIM_ARG_PAIRS weeks can be claimed per call.
+    /// Arguments are pairs of:
+    /// week: number,
+    /// user_delegation_amount: BigUint,
+    /// user_lkmex_staked_amount: BigUint,
+    /// signature: 120 bytes
     #[endpoint(claimRewards)]
-    fn claim_rewards(&self, #[var_args] claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>) {
+    fn claim_rewards(&self, claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>) {
         require!(self.not_paused(), "May not claim rewards while paused");
         require!(
             claim_args.raw_len() / CLAIM_NR_ARGS_PER_PAIR <= MAX_CLAIM_ARG_PAIRS,
@@ -212,6 +221,11 @@ pub trait RewardsModule:
         weeks_list
     }
 
+    /// Gets rewards for the given week, assuming the user has the given staked EGLD and LKMEX amounts.
+    /// Returned results are pairs of:
+    /// - project_id
+    /// - project_reward_token
+    /// - reward_amount
     #[view(getRewardsForWeek)]
     fn get_rewards_for_week_pretty(
         &self,

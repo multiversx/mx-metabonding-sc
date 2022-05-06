@@ -23,12 +23,19 @@ pub trait Metabonding:
     + math::MathModule
     + validation::ValidationModule
 {
+    /// Arguments:
+    /// - signer - public key that will be used for checking the claim signatures
+    /// - opt_rewards_nr_first_grace_weeks - Optional argument that will make it so
+    ///     the first X weeks can be claimed at any time (i.e. they will never expire)
+    /// - opt_first_week_start_epoch - The epoch which signals the start of week 0.
+    ///     Can also be an epoch from the past.
+    ///     By default, the current epoch on deploy will be used
     #[init]
     fn init(
         &self,
         signer: ManagedAddress,
-        #[var_args] opt_rewards_nr_first_grace_weeks: OptionalValue<Week>,
-        #[var_args] opt_first_week_start_epoch: OptionalValue<u64>,
+        opt_rewards_nr_first_grace_weeks: OptionalValue<Week>,
+        opt_first_week_start_epoch: OptionalValue<u64>,
     ) {
         self.signer().set(&signer);
         self.set_paused(true);
