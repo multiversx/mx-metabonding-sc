@@ -256,6 +256,21 @@ fn claim_rewards_test() {
         SECOND_PROJ_TOKEN,
         &rust_biguint!(100_000_000),
     );
+
+    // clear expired projects
+    mb_setup.b_mock.set_block_epoch(100);
+    mb_setup.call_clear_expired_projects().assert_ok();
+
+    mb_setup.b_mock.check_esdt_balance(
+        &mb_setup.first_project_owner.clone(),
+        FIRST_PROJ_TOKEN,
+        &rust_biguint!(625_000_002),
+    );
+    mb_setup.b_mock.check_esdt_balance(
+        &mb_setup.second_project_owner.clone(),
+        SECOND_PROJ_TOKEN,
+        &rust_biguint!(1_850_000_000),
+    );
 }
 
 #[test]
@@ -355,4 +370,126 @@ fn grace_period_test() {
     mb_setup
         .call_claim_rewards(&first_user_addr, 1, 25_000, 0, &sig_first_user_week_1)
         .assert_ok();
+}
+
+#[test]
+fn project_with_split_rewards_test() {
+    let mut mb_setup = MetabondingSetup::new(metabonding::contract_obj);
+    mb_setup.call_unpause().assert_ok();
+
+    // 25% goes to LKMEX holders, 75% to delegation
+    mb_setup
+        .call_add_project(
+            FIRST_PROJ_ID,
+            &mb_setup.first_project_owner.clone(),
+            FIRST_PROJ_TOKEN,
+            TOTAL_FIRST_PROJ_TOKENS,
+            1,
+            3,
+            25,
+        )
+        .assert_ok();
+
+    mb_setup
+        .call_deposit_rewards(
+            &mb_setup.first_project_owner.clone(),
+            FIRST_PROJ_ID,
+            FIRST_PROJ_TOKEN,
+            TOTAL_FIRST_PROJ_TOKENS,
+        )
+        .assert_ok();
+
+    mb_setup.b_mock.set_block_epoch(15);
+
+    mb_setup
+        .call_add_rewards_checkpoint(1, 100_000, 200_000)
+        .assert_ok();
+
+    let first_user_addr = mb_setup.first_user_addr.clone();
+    let sig_first_user_week_1 = hex_literal::hex!("7d086ee457a3ce00013156e1d4b30fe9911264833983ed212ce3d3b9c7bc61c15e671014bca50142a1f066012380f0c30f3db9f15bb3bbd641e03e88fd663f06");
+
+    // (1/4 * 750,000,000 + 1/2 * 250,000,000) / 3 ~= 104,166,666
+    let expected_rewards_amount = 104_166_666u64;
+    let actual_rewards_amount = mb_setup.get_pretty_rewards(1, 25_000, 100_000)[0].2;
+    assert_eq!(expected_rewards_amount, actual_rewards_amount);
+
+    mb_setup
+        .call_claim_rewards(&first_user_addr, 1, 25_000, 100_000, &sig_first_user_week_1)
+        .assert_ok();
+
+    mb_setup.b_mock.check_esdt_balance(
+        &first_user_addr,
+        FIRST_PROJ_TOKEN,
+        &rust_biguint!(expected_rewards_amount),
+    );
+}
+
+#[test]
+fn add_project_with_start_week_in_the_past_test() {
+    let mut mb_setup = MetabondingSetup::new(metabonding::contract_obj);
+    mb_setup.call_unpause().assert_ok();
+
+    // set current week in the future - week 5
+    mb_setup.b_mock.set_block_epoch(41);
+
+    mb_setup
+        .call_add_project(
+            FIRST_PROJ_ID,
+            &mb_setup.first_project_owner.clone(),
+            FIRST_PROJ_TOKEN,
+            TOTAL_FIRST_PROJ_TOKENS,
+            1,
+            7,
+            0,
+        )
+        .assert_ok();
+
+    mb_setup
+        .call_deposit_rewards(
+            &mb_setup.first_project_owner.clone(),
+            FIRST_PROJ_ID,
+            FIRST_PROJ_TOKEN,
+            TOTAL_FIRST_PROJ_TOKENS,
+        )
+        .assert_ok();
+
+    mb_setup
+        .call_add_rewards_checkpoint(1, 100_000, 0)
+        .assert_ok();
+
+    let first_user_addr = mb_setup.first_user_addr.clone();
+    let sig_first_user_week_1 = hex_literal::hex!("d47c0d67b2d25de8b4a3f43d91a2b5ccb522afac47321ae80bf89c90a4445b26adefa693ab685fa20891f736d74eb2dedc11c4b1a8d6e642fa28df270d6ebe08");
+
+    mb_setup
+        .call_claim_rewards(&first_user_addr, 1, 25_000, 0, &sig_first_user_week_1)
+        .assert_ok();
+
+    mb_setup.b_mock.check_esdt_balance(
+        &first_user_addr,
+        FIRST_PROJ_TOKEN,
+        &rust_biguint!(35_714_285),
+    );
+}
+
+#[test]
+fn clear_project_funds_not_deposited_test() {
+    let mut mb_setup = MetabondingSetup::new(metabonding::contract_obj);
+    mb_setup.call_unpause().assert_ok();
+    mb_setup.add_default_projects();
+
+    // get project IDs before
+    let proj_ids = mb_setup.get_all_project_ids();
+    assert_eq!(
+        proj_ids,
+        vec![FIRST_PROJ_ID.to_vec(), SECOND_PROJ_ID.to_vec(),]
+    );
+
+    // set current week - week 9 - first project expires
+    mb_setup.b_mock.set_block_epoch(68);
+
+    mb_setup.call_clear_expired_projects().assert_ok();
+
+    // get project IDs after
+    let proj_ids = mb_setup.get_all_project_ids();
+    assert_eq!(proj_ids, vec![SECOND_PROJ_ID.to_vec(),]);
 }
