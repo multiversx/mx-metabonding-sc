@@ -26,7 +26,7 @@ pub trait ValidationModule: crate::common_storage::CommonStorageModule {
         let _ = user_lkmex_staked_amount.dep_encode(&mut data);
 
         let signer: ManagedAddress = self.signer().get();
-        let valid_signature = self.crypto().verify_ed25519_managed::<MAX_DATA_LEN>(
+        let valid_signature = self.crypto().verify_ed25519_legacy_managed::<MAX_DATA_LEN>(
             signer.as_managed_byte_array(),
             &data,
             signature,

@@ -120,7 +120,7 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
     #[only_owner]
     #[endpoint(clearExpiredProjects)]
     fn clear_expired_projects(&self) -> OperationCompletionStatus {
-        let mut prev_token = TokenIdentifier::egld();
+        let mut prev_token = TokenIdentifier::empty();
         let mut prev_id = ProjectId::<Self::Api>::new();
         let mut clear_prev_id = false;
         let current_week = self.get_current_week();
@@ -163,7 +163,7 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
 
         if leftover_funds > 0 {
             self.send()
-                .direct(&project_owner, token_id, 0, &leftover_funds, &[]);
+                .direct_esdt(&project_owner, token_id, 0, &leftover_funds, &[]);
         }
     }
 
