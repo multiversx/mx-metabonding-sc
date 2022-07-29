@@ -190,7 +190,7 @@ pub trait RewardsModule:
         }
 
         if !weekly_rewards.is_empty() {
-            self.send().direct_multi(&caller, &weekly_rewards, &[]);
+            self.send().direct_multi(&caller, &weekly_rewards);
         }
     }
 

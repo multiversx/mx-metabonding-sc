@@ -281,7 +281,7 @@ where
             .execute_query(&self.mb_wrapper, |sc| {
                 let result = sc.get_project_by_id(managed_buffer!(proj_id));
                 let (first, second, third, fourth, fifth) = result.into_tuple();
-                token = first.to_esdt_identifier().as_slice().to_vec();
+                token = first.to_boxed_bytes().as_slice().to_vec();
                 reward_amount = second.to_u64().unwrap();
                 lkmex_rewards_supply = third.to_u64().unwrap();
                 start_week = fourth;
@@ -423,7 +423,7 @@ where
                 for rew in result {
                     let (proj_id, token, amount) = rew.into_tuple();
                     let raw_id = proj_id.to_boxed_bytes().as_slice().to_vec();
-                    let raw_token = token.to_esdt_identifier().as_slice().to_vec();
+                    let raw_token = token.to_boxed_bytes().as_slice().to_vec();
                     let raw_amount = amount.to_u64().unwrap();
 
                     rewards.push((raw_id, raw_token, raw_amount));
