@@ -75,7 +75,7 @@ pub trait RewardsModule:
             "Rewards already deposited"
         );
 
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let project = self.get_project_or_panic(&project_id);
 
         let caller = self.blockchain().get_caller();
@@ -181,17 +181,16 @@ pub trait RewardsModule:
                 self.leftover_project_funds(&id)
                     .update(|leftover| *leftover -= &rewards_for_project);
 
-                weekly_rewards.push(EsdtTokenPayment {
-                    token_type: EsdtTokenType::Fungible,
-                    token_identifier: project.reward_token,
-                    token_nonce: 0,
-                    amount: rewards_for_project,
-                });
+                weekly_rewards.push(EsdtTokenPayment::new(
+                    project.reward_token,
+                    0,
+                    rewards_for_project,
+                ));
             }
         }
 
         if !weekly_rewards.is_empty() {
-            self.send().direct_multi(&caller, &weekly_rewards, &[]);
+            self.send().direct_multi(&caller, &weekly_rewards);
         }
     }
 
