@@ -10,9 +10,9 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use elrond_wasm_modules::pause::PauseModule;
-use metabonding::project::ProjectModule;
 use metabonding::rewards::RewardsModule;
 use metabonding::*;
+use metabonding::{claim::ClaimModule, project::ProjectModule};
 use metabonding::{
     common_storage::{CommonStorageModule, EPOCHS_IN_WEEK},
     rewards::Week,
