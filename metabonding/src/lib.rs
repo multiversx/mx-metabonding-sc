@@ -5,6 +5,7 @@ use rewards::Week;
 elrond_wasm::imports!();
 
 pub mod access_control;
+pub mod claim;
 pub mod common_storage;
 pub mod math;
 pub mod project;
@@ -18,6 +19,7 @@ pub trait Metabonding:
     elrond_wasm_modules::pause::PauseModule
     + project::ProjectModule
     + rewards::RewardsModule
+    + claim::ClaimModule
     + access_control::AccessControlModule
     + common_storage::CommonStorageModule
     + math::MathModule
@@ -45,14 +47,14 @@ pub trait Metabonding:
             OptionalValue::None => 0,
         };
         self.rewards_nr_first_grace_weeks()
-            .set(rewards_nr_first_grace_weeks);
+            .set_if_empty(rewards_nr_first_grace_weeks);
 
         let first_week_start_epoch = match opt_first_week_start_epoch {
             OptionalValue::Some(epoch) => epoch,
             OptionalValue::None => self.blockchain().get_block_epoch(),
         };
         self.first_week_start_epoch()
-            .set_if_empty(&first_week_start_epoch);
+            .set_if_empty(first_week_start_epoch);
     }
 
     #[only_owner]

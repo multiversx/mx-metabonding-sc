@@ -1,7 +1,7 @@
 pub mod metabonding_setup;
 
 use elrond_wasm_debug::rust_biguint;
-use metabonding::rewards::RewardsModule;
+use metabonding::claim::ClaimModule;
 use metabonding_setup::*;
 
 #[test]
