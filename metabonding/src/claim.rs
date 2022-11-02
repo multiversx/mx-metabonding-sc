@@ -1,5 +1,7 @@
 elrond_wasm::imports!();
 
+use elrond_wasm_modules::transfer_role_proxy::PaymentsVec;
+
 use crate::{
     project::PROJECT_EXPIRATION_WEEKS,
     rewards::{RewardsCheckpoint, Week},
@@ -10,6 +12,7 @@ const MAX_CLAIM_ARG_PAIRS: usize = 5;
 const CLAIM_NR_ARGS_PER_PAIR: usize = 4;
 
 pub type ClaimArgPair<M> = MultiValue4<Week, BigUint<M>, BigUint<M>, Signature<M>>;
+pub type ClaimArgArray<M> = ArrayVec<ClaimArgsWrapper<M>, MAX_CLAIM_ARG_PAIRS>;
 
 pub struct ClaimArgsWrapper<M: ManagedTypeApi> {
     pub week: Week,
@@ -35,25 +38,38 @@ pub trait ClaimModule:
     /// user_lkmex_staked_amount: BigUint,
     /// signature: 120 bytes
     #[endpoint(claimRewards)]
-    fn claim_rewards(&self, claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>) {
+    fn claim_rewards(&self, raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>) {
         require!(self.not_paused(), "May not claim rewards while paused");
         require!(
-            claim_args.raw_len() / CLAIM_NR_ARGS_PER_PAIR <= MAX_CLAIM_ARG_PAIRS,
+            raw_claim_args.raw_len() / CLAIM_NR_ARGS_PER_PAIR <= MAX_CLAIM_ARG_PAIRS,
             "Too many arguments"
         );
 
         let caller = self.blockchain().get_caller();
         let current_week = self.get_current_week();
+        let args = self.validate_and_collect_claim_args(&caller, current_week, raw_claim_args);
+        let rewards = self.claim_all_from_args(current_week, args);
+        if !rewards.is_empty() {
+            self.send().direct_multi(&caller, &rewards);
+        }
+    }
+
+    fn validate_and_collect_claim_args(
+        &self,
+        caller: &ManagedAddress,
+        current_week: Week,
+        raw_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
+    ) -> ClaimArgArray<Self::Api> {
         let last_checkpoint_week = self.get_last_checkpoint_week();
         let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
 
         let mut args = ArrayVec::<ClaimArgsWrapper<Self::Api>, MAX_CLAIM_ARG_PAIRS>::new();
-        for arg in claim_args {
+        for raw_arg in raw_args {
             let (week, user_delegation_amount, user_lkmex_staked_amount, signature) =
-                arg.into_tuple();
+                raw_arg.into_tuple();
 
             require!(
-                !self.rewards_claimed(&caller, week).get(),
+                !self.rewards_claimed(caller, week).get(),
                 "Already claimed rewards for this week"
             );
             require!(week <= last_checkpoint_week, "No checkpoint for week yet");
@@ -62,16 +78,16 @@ pub trait ClaimModule:
                 "Claiming too late"
             );
 
-            let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
+            let checkpoint = self.rewards_checkpoints().get(week);
             self.verify_signature(
                 week,
-                &caller,
+                caller,
                 &user_delegation_amount,
                 &user_lkmex_staked_amount,
                 &signature,
             );
 
-            self.rewards_claimed(&caller, week).set(true);
+            self.rewards_claimed(caller, week).set(true);
 
             args.push(ClaimArgsWrapper {
                 week,
@@ -81,11 +97,20 @@ pub trait ClaimModule:
             });
         }
 
-        let mut weekly_rewards = ManagedVec::new();
-        for (id, project) in self.projects().iter() {
-            let mut opt_rewards_for_project = None;
+        args
+    }
 
-            for arg in &args {
+    fn claim_all_from_args(
+        &self,
+        current_week: Week,
+        claim_args: ClaimArgArray<Self::Api>,
+    ) -> PaymentsVec<Self::Api> {
+        let mut all_rewards = PaymentsVec::new();
+
+        let projects_mapper = self.projects();
+        for (id, project) in projects_mapper.iter() {
+            let mut rewards_for_project = BigUint::zero();
+            for arg in &claim_args {
                 let opt_weekly_reward = self.get_weekly_reward_for_project(
                     &id,
                     &project,
@@ -96,20 +121,16 @@ pub trait ClaimModule:
                     &arg.checkpoint.total_delegation_supply,
                     &arg.checkpoint.total_lkmex_staked,
                 );
-
                 if let Some(weekly_reward) = opt_weekly_reward {
-                    match &mut opt_rewards_for_project {
-                        Some(prev_amt) => *prev_amt += weekly_reward,
-                        None => opt_rewards_for_project = Some(weekly_reward),
-                    }
+                    rewards_for_project += weekly_reward;
                 }
             }
 
-            if let Some(rewards_for_project) = opt_rewards_for_project {
+            if rewards_for_project > 0 {
                 self.leftover_project_funds(&id)
                     .update(|leftover| *leftover -= &rewards_for_project);
 
-                weekly_rewards.push(EsdtTokenPayment::new(
+                all_rewards.push(EsdtTokenPayment::new(
                     project.reward_token,
                     0,
                     rewards_for_project,
@@ -117,9 +138,7 @@ pub trait ClaimModule:
             }
         }
 
-        if !weekly_rewards.is_empty() {
-            self.send().direct_multi(&caller, &weekly_rewards);
-        }
+        all_rewards
     }
 
     #[view(getUserClaimableWeeks)]
@@ -146,6 +165,16 @@ pub trait ClaimModule:
         }
 
         weeks_list
+    }
+
+    fn is_claim_in_time(
+        &self,
+        claim_week: Week,
+        current_week: Week,
+        rewards_nr_first_grace_weeks: Week,
+    ) -> bool {
+        current_week <= rewards_nr_first_grace_weeks
+            || current_week <= claim_week + PROJECT_EXPIRATION_WEEKS
     }
 
     #[storage_mapper("rewardsNrFirstGraceWeeks")]

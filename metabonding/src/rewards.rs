@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::project::{Project, ProjectId, PROJECT_EXPIRATION_WEEKS};
+use crate::project::{Project, ProjectId};
 
 pub type Week = usize;
 pub type PrettyRewards<M> =
@@ -179,16 +179,6 @@ pub trait RewardsModule:
         );
 
         rewards_delegation + rewards_lkmex
-    }
-
-    fn is_claim_in_time(
-        &self,
-        claim_week: Week,
-        current_week: Week,
-        rewards_nr_first_grace_weeks: Week,
-    ) -> bool {
-        current_week <= rewards_nr_first_grace_weeks
-            || current_week <= claim_week + PROJECT_EXPIRATION_WEEKS
     }
 
     #[inline]
