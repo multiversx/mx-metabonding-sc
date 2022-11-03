@@ -7,6 +7,8 @@ pub type Week = usize;
 pub type PrettyRewards<M> =
     MultiValueEncoded<M, MultiValue3<ProjectId<M>, TokenIdentifier<M>, BigUint<M>>>;
 
+pub const FIRST_WEEK: usize = 1;
+
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct RewardsCheckpoint<M: ManagedTypeApi> {
     pub total_delegation_supply: BigUint<M>,

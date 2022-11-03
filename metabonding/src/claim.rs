@@ -3,13 +3,16 @@ elrond_wasm::imports!();
 use elrond_wasm_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::{
+    claim_progress::ClaimProgressTracker,
     project::PROJECT_EXPIRATION_WEEKS,
-    rewards::{RewardsCheckpoint, Week},
+    rewards::{RewardsCheckpoint, Week, FIRST_WEEK},
     validation::Signature,
 };
 
 const MAX_CLAIM_ARG_PAIRS: usize = 5;
 const CLAIM_NR_ARGS_PER_PAIR: usize = 4;
+static ALREADY_CLAIMED_ERR_MSG: &[u8] = b"Already claimed rewards for this week";
+static INVALID_WEEK_NR_ERR_MSG: &[u8] = b"Invalid week number";
 
 pub type ClaimArgPair<M> = MultiValue4<Week, BigUint<M>, BigUint<M>, Signature<M>>;
 pub type ClaimArgArray<M> = ArrayVec<ClaimArgsWrapper<M>, MAX_CLAIM_ARG_PAIRS>;
@@ -30,6 +33,7 @@ pub trait ClaimModule:
     + crate::math::MathModule
     + crate::validation::ValidationModule
     + crate::rewards::RewardsModule
+    + crate::claim_progress::ClaimProgressModule
 {
     /// Claims rewards for the given weeks. Maximum of MAX_CLAIM_ARG_PAIRS weeks can be claimed per call.
     /// Arguments are pairs of:
@@ -61,22 +65,38 @@ pub trait ClaimModule:
         raw_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
     ) -> ClaimArgArray<Self::Api> {
         let last_checkpoint_week = self.get_last_checkpoint_week();
-        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
+        let nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
+        let is_grace_period = current_week <= nr_first_grace_weeks;
 
-        let mut args = ArrayVec::<ClaimArgsWrapper<Self::Api>, MAX_CLAIM_ARG_PAIRS>::new();
+        let mut grace_weeks_progress = self.get_grace_weeks_progress(caller);
+        let mut shifting_progress = self.get_shifting_progress(caller, current_week);
+        let mut args = ClaimArgArray::new();
         for raw_arg in raw_args {
             let (week, user_delegation_amount, user_lkmex_staked_amount, signature) =
                 raw_arg.into_tuple();
 
             require!(
-                !self.rewards_claimed(caller, week).get(),
-                "Already claimed rewards for this week"
+                week >= FIRST_WEEK && week <= last_checkpoint_week,
+                INVALID_WEEK_NR_ERR_MSG
             );
-            require!(week <= last_checkpoint_week, "No checkpoint for week yet");
-            require!(
-                self.is_claim_in_time(week, current_week, rewards_nr_first_grace_weeks),
-                "Claiming too late"
-            );
+
+            if is_grace_period && grace_weeks_progress.is_week_valid(week) {
+                require!(
+                    grace_weeks_progress.can_claim_for_week(week),
+                    ALREADY_CLAIMED_ERR_MSG
+                );
+
+                grace_weeks_progress.set_claimed_for_week(week);
+            } else if shifting_progress.is_week_valid(week) {
+                require!(
+                    shifting_progress.can_claim_for_week(week),
+                    ALREADY_CLAIMED_ERR_MSG
+                );
+
+                shifting_progress.set_claimed_for_week(week);
+            } else {
+                sc_panic!(INVALID_WEEK_NR_ERR_MSG);
+            }
 
             let checkpoint = self.rewards_checkpoints().get(week);
             self.verify_signature(
@@ -87,8 +107,6 @@ pub trait ClaimModule:
                 &signature,
             );
 
-            self.rewards_claimed(caller, week).set(true);
-
             args.push(ClaimArgsWrapper {
                 week,
                 user_delegation_amount,
@@ -96,6 +114,10 @@ pub trait ClaimModule:
                 checkpoint,
             });
         }
+
+        self.claim_progress_grace_weeks(caller)
+            .set(&grace_weeks_progress);
+        self.shifting_claim_progress(caller).set(&shifting_progress);
 
         args
     }
@@ -142,44 +164,36 @@ pub trait ClaimModule:
     }
 
     #[view(getUserClaimableWeeks)]
-    fn get_user_claimable_weeks(&self, user_address: ManagedAddress) -> MultiValueEncoded<Week> {
-        let last_checkpoint_week = self.get_last_checkpoint_week();
-        let current_week = self.get_current_week();
-        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
-
-        let start_week = if current_week <= rewards_nr_first_grace_weeks
-            || PROJECT_EXPIRATION_WEEKS >= last_checkpoint_week
-        {
-            1
-        } else {
-            last_checkpoint_week - PROJECT_EXPIRATION_WEEKS
-        };
-
+    fn get_user_claimable_weeks(&self, user: ManagedAddress) -> MultiValueEncoded<Week> {
         let mut weeks_list = MultiValueEncoded::new();
-        for week in start_week..=last_checkpoint_week {
-            if !self.rewards_claimed(&user_address, week).get()
-                && self.is_claim_in_time(week, current_week, rewards_nr_first_grace_weeks)
-            {
-                weeks_list.push(week);
+        let current_week = self.get_current_week();
+        let last_checkpoint_week = self.get_last_checkpoint_week();
+        if current_week == 0 || last_checkpoint_week == 0 {
+            return weeks_list;
+        }
+
+        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
+        if current_week <= rewards_nr_first_grace_weeks {
+            let grace_weeks_progress = self.get_grace_weeks_progress(&user);
+            for week in FIRST_WEEK..=last_checkpoint_week {
+                if grace_weeks_progress.can_claim_for_week(week) {
+                    weeks_list.push(week);
+                }
+            }
+        } else {
+            let shifting_progress = self.get_shifting_progress(&user, current_week);
+            let start_week = if current_week > PROJECT_EXPIRATION_WEEKS {
+                current_week - PROJECT_EXPIRATION_WEEKS
+            } else {
+                FIRST_WEEK
+            };
+            for week in start_week..=last_checkpoint_week {
+                if shifting_progress.can_claim_for_week(week) {
+                    weeks_list.push(week);
+                }
             }
         }
 
         weeks_list
     }
-
-    fn is_claim_in_time(
-        &self,
-        claim_week: Week,
-        current_week: Week,
-        rewards_nr_first_grace_weeks: Week,
-    ) -> bool {
-        current_week <= rewards_nr_first_grace_weeks
-            || current_week <= claim_week + PROJECT_EXPIRATION_WEEKS
-    }
-
-    #[storage_mapper("rewardsNrFirstGraceWeeks")]
-    fn rewards_nr_first_grace_weeks(&self) -> SingleValueMapper<Week>;
-
-    #[storage_mapper("rewardsClaimed")]
-    fn rewards_claimed(&self, user: &ManagedAddress, week: Week) -> SingleValueMapper<bool>;
 }
