@@ -3,8 +3,7 @@ elrond_wasm::imports!();
 use elrond_wasm_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::{
-    claim_progress::ClaimProgressTracker,
-    project::PROJECT_EXPIRATION_WEEKS,
+    claim_progress::{ClaimProgressTracker, ShiftingClaimProgress},
     rewards::{RewardsCheckpoint, Week, FIRST_WEEK},
     validation::Signature,
 };
@@ -66,9 +65,9 @@ pub trait ClaimModule:
     ) -> ClaimArgArray<Self::Api> {
         let last_checkpoint_week = self.get_last_checkpoint_week();
         let nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
-        let is_grace_period = current_week <= nr_first_grace_weeks;
 
-        let mut grace_weeks_progress = self.get_grace_weeks_progress(caller);
+        let mut grace_weeks_progress =
+            self.get_grace_weeks_progress(caller, nr_first_grace_weeks, current_week);
         let mut shifting_progress = self.get_shifting_progress(caller, current_week);
         let mut args = ClaimArgArray::new();
         for raw_arg in raw_args {
@@ -80,13 +79,14 @@ pub trait ClaimModule:
                 INVALID_WEEK_NR_ERR_MSG
             );
 
-            if is_grace_period && grace_weeks_progress.is_week_valid(week) {
+            if grace_weeks_progress.is_week_valid(week) {
                 require!(
                     grace_weeks_progress.can_claim_for_week(week),
                     ALREADY_CLAIMED_ERR_MSG
                 );
 
                 grace_weeks_progress.set_claimed_for_week(week);
+                shifting_progress.set_claimed_for_week(week);
             } else if shifting_progress.is_week_valid(week) {
                 require!(
                     shifting_progress.can_claim_for_week(week),
@@ -174,7 +174,8 @@ pub trait ClaimModule:
 
         let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
         if current_week <= rewards_nr_first_grace_weeks {
-            let grace_weeks_progress = self.get_grace_weeks_progress(&user);
+            let grace_weeks_progress =
+                self.get_grace_weeks_progress(&user, rewards_nr_first_grace_weeks, current_week);
             for week in FIRST_WEEK..=last_checkpoint_week {
                 if grace_weeks_progress.can_claim_for_week(week) {
                     weeks_list.push(week);
@@ -182,11 +183,8 @@ pub trait ClaimModule:
             }
         } else {
             let shifting_progress = self.get_shifting_progress(&user, current_week);
-            let start_week = if current_week > PROJECT_EXPIRATION_WEEKS {
-                current_week - PROJECT_EXPIRATION_WEEKS
-            } else {
-                FIRST_WEEK
-            };
+            let start_week =
+                ShiftingClaimProgress::get_first_index_week_for_new_current_week(current_week);
             for week in start_week..=last_checkpoint_week {
                 if shifting_progress.can_claim_for_week(week) {
                     weeks_list.push(week);
