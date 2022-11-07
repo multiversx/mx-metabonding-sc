@@ -12,6 +12,7 @@ elrond_wasm_node::wasm_endpoints! {
         changeSigner
         claimRewards
         clearExpiredProjects
+        clearOldStorageFlags
         depositRewards
         getAllProjectIds
         getCurrentWeek

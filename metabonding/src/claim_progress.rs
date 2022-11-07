@@ -137,10 +137,6 @@ impl ClaimProgressTracker for ShiftingClaimProgress {
 
 #[elrond_wasm::module]
 pub trait ClaimProgressModule {
-    #[only_owner]
-    #[endpoint(clearOldStorageFlags)]
-    fn clear_old_storage_flags(&self, _users: MultiValueEncoded<ManagedAddress>) {}
-
     fn get_grace_weeks_progress(
         &self,
         user: &ManagedAddress,
