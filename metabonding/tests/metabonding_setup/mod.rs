@@ -358,7 +358,7 @@ where
                         .into(),
                 );
 
-                sc.claim_rewards(args);
+                sc.claim_rewards(managed_address!(caller), args);
             })
     }
 
@@ -384,7 +384,7 @@ where
                     );
                 }
 
-                sc.claim_rewards(encoded_args);
+                sc.claim_rewards(managed_address!(&caller), encoded_args);
             })
     }
 
