@@ -69,7 +69,7 @@ where
 
         b_mock.set_esdt_balance(
             &first_project_owner,
-            &FIRST_PROJ_TOKEN,
+            FIRST_PROJ_TOKEN,
             &rust_biguint!(TOTAL_FIRST_PROJ_TOKENS),
         );
         b_mock.set_esdt_balance(
@@ -98,7 +98,7 @@ where
 
                 assert_eq!(sc.first_week_start_epoch().get(), 5);
                 assert_eq!(sc.signer().get(), signer_addr);
-                assert_eq!(sc.is_paused(), true);
+                assert!(sc.is_paused());
             })
             .assert_ok();
 
@@ -204,6 +204,7 @@ where
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn call_add_project(
         &mut self,
         project_id: &[u8],
@@ -384,7 +385,7 @@ where
                     );
                 }
 
-                sc.claim_rewards(managed_address!(&caller), encoded_args);
+                sc.claim_rewards(managed_address!(caller), encoded_args);
             })
     }
 

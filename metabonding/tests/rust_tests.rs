@@ -62,7 +62,7 @@ fn deposit_rewards_test() {
     let rand_user = mb_setup.b_mock.create_user_account(&rust_biguint!(0));
     mb_setup.b_mock.set_esdt_balance(
         &rand_user,
-        &FIRST_PROJ_TOKEN,
+        FIRST_PROJ_TOKEN,
         &rust_biguint!(TOTAL_FIRST_PROJ_TOKENS),
     );
     mb_setup
@@ -80,7 +80,7 @@ fn deposit_rewards_test() {
     let first_proj_owner = mb_setup.first_project_owner.clone();
     mb_setup.b_mock.set_esdt_balance(
         &first_proj_owner,
-        &FIRST_PROJ_TOKEN,
+        FIRST_PROJ_TOKEN,
         &rust_biguint!(TOTAL_FIRST_PROJ_TOKENS),
     );
     mb_setup
