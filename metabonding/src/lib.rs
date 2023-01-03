@@ -24,6 +24,7 @@ pub trait Metabonding:
     + common_storage::CommonStorageModule
     + math::MathModule
     + validation::ValidationModule
+    + sc_whitelist_module::SCWhitelistModule
 {
     /// Arguments:
     /// - signer - public key that will be used for checking the claim signatures

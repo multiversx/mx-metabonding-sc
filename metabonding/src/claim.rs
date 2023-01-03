@@ -27,7 +27,12 @@ pub trait ClaimModule:
     + crate::math::MathModule
     + crate::validation::ValidationModule
     + crate::rewards::RewardsModule
+    + sc_whitelist_module::SCWhitelistModule
 {
+    /// Claims rewards for the given user.
+    /// May only be different from caller for whitelisted proxy contracts.
+    /// If the user performs their own claim, this address should be their own.
+    ///
     /// Claims rewards for the given weeks. Maximum of MAX_CLAIM_ARG_PAIRS weeks can be claimed per call.
     /// Arguments are pairs of:
     /// week: number,
@@ -35,7 +40,11 @@ pub trait ClaimModule:
     /// user_lkmex_staked_amount: BigUint,
     /// signature: 120 bytes
     #[endpoint(claimRewards)]
-    fn claim_rewards(&self, claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>) {
+    fn claim_rewards(
+        &self,
+        original_caller: ManagedAddress,
+        claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
+    ) {
         require!(self.not_paused(), "May not claim rewards while paused");
         require!(
             claim_args.raw_len() / CLAIM_NR_ARGS_PER_PAIR <= MAX_CLAIM_ARG_PAIRS,
@@ -43,6 +52,10 @@ pub trait ClaimModule:
         );
 
         let caller = self.blockchain().get_caller();
+        if caller != original_caller {
+            self.require_sc_address_whitelisted(&caller);
+        }
+
         let current_week = self.get_current_week();
         let last_checkpoint_week = self.get_last_checkpoint_week();
         let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
@@ -65,13 +78,13 @@ pub trait ClaimModule:
             let checkpoint: RewardsCheckpoint<Self::Api> = self.rewards_checkpoints().get(week);
             self.verify_signature(
                 week,
-                &caller,
+                &original_caller,
                 &user_delegation_amount,
                 &user_lkmex_staked_amount,
                 &signature,
             );
 
-            self.rewards_claimed(&caller, week).set(true);
+            self.rewards_claimed(&original_caller, week).set(true);
 
             args.push(ClaimArgsWrapper {
                 week,
