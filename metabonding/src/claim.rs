@@ -44,7 +44,7 @@ pub trait ClaimModule:
         &self,
         original_caller: ManagedAddress,
         claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
-    ) {
+    ) -> ManagedVec<EsdtTokenPayment> {
         require!(self.not_paused(), "May not claim rewards while paused");
         require!(
             claim_args.raw_len() / CLAIM_NR_ARGS_PER_PAIR <= MAX_CLAIM_ARG_PAIRS,
@@ -133,6 +133,8 @@ pub trait ClaimModule:
         if !weekly_rewards.is_empty() {
             self.send().direct_multi(&caller, &weekly_rewards);
         }
+
+        weekly_rewards
     }
 
     #[view(getUserClaimableWeeks)]
