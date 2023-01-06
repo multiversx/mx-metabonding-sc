@@ -24,4 +24,4 @@ hex = "0.4"
 hex-literal = "0.3.4"
 
 [dependencies]
-sc_whitelist_module = { git = "https://github.com/multiversx/mx-exchange-sc", rev = "6f8aeda" }
+sc_whitelist_module = { git = "https://github.com/multiversx/mx-exchange-sc", rev = "7b6564f" }
