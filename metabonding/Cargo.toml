@@ -9,16 +9,19 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.38.0"
 
 [dependencies.elrond-wasm-modules]
-version = "=0.36.1"
+version = "=0.38.0"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+version = "=0.38.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"
 hex = "0.4"
 hex-literal = "0.3.4"
+
+[dependencies]
+sc_whitelist_module = { git = "https://github.com/multiversx/mx-exchange-sc", rev = "7b6564f" }

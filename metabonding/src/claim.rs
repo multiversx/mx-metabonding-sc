@@ -38,7 +38,12 @@ pub trait ClaimModule:
     + crate::validation::ValidationModule
     + crate::rewards::RewardsModule
     + crate::claim_progress::ClaimProgressModule
+    + sc_whitelist_module::SCWhitelistModule
 {
+    /// Claims rewards for the given user.
+    /// May only be different from caller for whitelisted proxy contracts.
+    /// If the user performs their own claim, this address should be their own.
+    ///
     /// Claims rewards for the given weeks. Maximum of MAX_CLAIM_ARG_PAIRS weeks can be claimed per call.
     /// Arguments are pairs of:
     /// week: number,
@@ -46,10 +51,18 @@ pub trait ClaimModule:
     /// user_lkmex_staked_amount: BigUint,
     /// signature: 120 bytes
     #[endpoint(claimRewards)]
-    fn claim_rewards(&self, raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>) {
+    fn claim_rewards(
+        &self,
+        original_caller: ManagedAddress,
+        raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
+    ) -> ManagedVec<EsdtTokenPayment> {
         require!(self.not_paused(), "May not claim rewards while paused");
 
         let caller = self.blockchain().get_caller();
+        if caller != original_caller {
+            self.require_sc_address_whitelisted(&caller);
+        }
+
         let current_week = self.get_current_week();
         let last_checkpoint_week = self.get_last_checkpoint_week();
 
@@ -81,6 +94,8 @@ pub trait ClaimModule:
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
         }
+
+        rewards
     }
 
     fn collect_claim_args(

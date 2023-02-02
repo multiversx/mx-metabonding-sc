@@ -159,8 +159,8 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
         project_id: &ProjectId<Self::Api>,
         token_id: &TokenIdentifier,
     ) {
-        let project_owner = self.get_and_clear(&self.project_owner(project_id));
-        let leftover_funds = self.get_and_clear(&self.leftover_project_funds(project_id));
+        let project_owner = self.project_owner(project_id).take();
+        let leftover_funds = self.leftover_project_funds(project_id).take();
 
         let _ = self.projects().remove(project_id);
 

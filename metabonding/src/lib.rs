@@ -28,6 +28,7 @@ pub trait Metabonding:
     + math::MathModule
     + validation::ValidationModule
     + legacy_storage_cleanup::LegacyStorageCleanupModule
+    + sc_whitelist_module::SCWhitelistModule
 {
     /// Arguments:
     /// - signer - public key that will be used for checking the claim signatures
