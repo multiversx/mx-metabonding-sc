@@ -18,6 +18,15 @@ pub struct RewardsCheckpoint<M: ManagedTypeApi> {
     pub total_lkmex_staked: BigUint<M>,
 }
 
+impl<M: ManagedTypeApi> Default for RewardsCheckpoint<M> {
+    fn default() -> Self {
+        Self {
+            total_delegation_supply: BigUint::zero(),
+            total_lkmex_staked: BigUint::zero(),
+        }
+    }
+}
+
 #[elrond_wasm::module]
 pub trait RewardsModule:
     elrond_wasm_modules::pause::PauseModule

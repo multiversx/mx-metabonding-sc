@@ -3,25 +3,29 @@ elrond_wasm::imports!();
 use elrond_wasm_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::{
-    claim_progress::{ClaimProgressTracker, ShiftingClaimProgress},
+    claim_progress::{ClaimProgressGraceWeeks, ClaimProgressTracker, ShiftingClaimProgress},
     project::{Project, ProjectId},
     rewards::{RewardsCheckpoint, Week, FIRST_WEEK},
-    validation::Signature,
+    validation::{Signature, ALREADY_CLAIMED_ERR_MSG},
 };
 
 const MAX_CLAIM_ARG_PAIRS: usize = 5;
 const CLAIM_NR_ARGS_PER_PAIR: usize = 4;
-static ALREADY_CLAIMED_ERR_MSG: &[u8] = b"Already claimed rewards for this week";
-static INVALID_WEEK_NR_ERR_MSG: &[u8] = b"Invalid week number";
 
 pub type ClaimArgPair<M> = MultiValue4<Week, BigUint<M>, BigUint<M>, Signature<M>>;
 pub type ClaimArgArray<M> = ArrayVec<ClaimArgsWrapper<M>, MAX_CLAIM_ARG_PAIRS>;
+pub type SignedClaimArgArray<M> = ArrayVec<SignedClaimArgs<M>, MAX_CLAIM_ARG_PAIRS>;
 
 pub struct ClaimArgsWrapper<M: ManagedTypeApi> {
     pub week: Week,
     pub user_delegation_amount: BigUint<M>,
     pub user_lkmex_staked_amount: BigUint<M>,
     pub checkpoint: RewardsCheckpoint<M>,
+}
+
+pub struct SignedClaimArgs<M: ManagedTypeApi> {
+    pub args_wrapper: ClaimArgsWrapper<M>,
+    pub signature: Signature<M>,
 }
 
 #[elrond_wasm::module]
@@ -44,89 +48,83 @@ pub trait ClaimModule:
     #[endpoint(claimRewards)]
     fn claim_rewards(&self, raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>) {
         require!(self.not_paused(), "May not claim rewards while paused");
-        require!(
-            raw_claim_args.raw_len() / CLAIM_NR_ARGS_PER_PAIR <= MAX_CLAIM_ARG_PAIRS,
-            "Too many arguments"
-        );
 
         let caller = self.blockchain().get_caller();
         let current_week = self.get_current_week();
-        let args = self.validate_and_collect_claim_args(&caller, current_week, raw_claim_args);
-        let rewards = self.claim_all_project_rewards(current_week, &args);
+        let last_checkpoint_week = self.get_last_checkpoint_week();
+
+        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
+        let mut grace_weeks_progress =
+            self.get_grace_weeks_progress(&caller, rewards_nr_first_grace_weeks, current_week);
+        let mut shifting_progress = self.get_shifting_progress(&caller, current_week);
+
+        let signed_args = self.collect_claim_args(raw_claim_args);
+        let args = self.validate_claim_args(
+            &caller,
+            signed_args,
+            &grace_weeks_progress,
+            &shifting_progress,
+            last_checkpoint_week,
+        );
+
+        let rewards = self.claim_all_project_rewards(
+            current_week,
+            &args,
+            &mut grace_weeks_progress,
+            &mut shifting_progress,
+        );
+
+        self.claim_progress_grace_weeks(&caller)
+            .set(grace_weeks_progress);
+        self.shifting_claim_progress(&caller).set(shifting_progress);
+
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
         }
     }
 
-    fn validate_and_collect_claim_args(
+    fn collect_claim_args(
         &self,
-        caller: &ManagedAddress,
-        current_week: Week,
-        raw_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
-    ) -> ClaimArgArray<Self::Api> {
-        let last_checkpoint_week = self.get_last_checkpoint_week();
-        let nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
+        raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
+    ) -> SignedClaimArgArray<Self::Api> {
+        require!(
+            raw_claim_args.raw_len() / CLAIM_NR_ARGS_PER_PAIR <= MAX_CLAIM_ARG_PAIRS,
+            "Too many arguments"
+        );
 
-        let mut grace_weeks_progress =
-            self.get_grace_weeks_progress(caller, nr_first_grace_weeks, current_week);
-        let mut shifting_progress = self.get_shifting_progress(caller, current_week);
-        let mut args = ClaimArgArray::new();
-        for raw_arg in raw_args {
+        let mut array = ArrayVec::new();
+        for raw_arg in raw_claim_args {
             let (week, user_delegation_amount, user_lkmex_staked_amount, signature) =
                 raw_arg.into_tuple();
+            let checkpoint = self
+                .rewards_checkpoints()
+                .get_or_else(week, RewardsCheckpoint::default);
 
-            require!(
-                week >= FIRST_WEEK && week <= last_checkpoint_week,
-                INVALID_WEEK_NR_ERR_MSG
-            );
-
-            if grace_weeks_progress.is_week_valid(week) {
-                require!(
-                    grace_weeks_progress.can_claim_for_week(week),
-                    ALREADY_CLAIMED_ERR_MSG
-                );
-
-                grace_weeks_progress.set_claimed_for_week(week);
-                shifting_progress.set_claimed_for_week(week);
-            } else if shifting_progress.is_week_valid(week) {
-                require!(
-                    shifting_progress.can_claim_for_week(week),
-                    ALREADY_CLAIMED_ERR_MSG
-                );
-
-                shifting_progress.set_claimed_for_week(week);
-            } else {
-                sc_panic!(INVALID_WEEK_NR_ERR_MSG);
-            }
-
-            let checkpoint = self.rewards_checkpoints().get(week);
-            self.verify_signature(
-                week,
-                caller,
-                &user_delegation_amount,
-                &user_lkmex_staked_amount,
-                &signature,
-            );
-
-            args.push(ClaimArgsWrapper {
+            let args_wrapper = ClaimArgsWrapper {
                 week,
                 user_delegation_amount,
                 user_lkmex_staked_amount,
                 checkpoint,
-            });
+            };
+            let arg = SignedClaimArgs {
+                args_wrapper,
+                signature,
+            };
+
+            unsafe {
+                array.push_unchecked(arg);
+            }
         }
 
-        self.claim_progress_grace_weeks(caller)
-            .set(&grace_weeks_progress);
-        self.shifting_claim_progress(caller).set(&shifting_progress);
-
-        args
+        array
     }
 
     fn claim_all_project_rewards(
         &self,
         current_week: Week,
         claim_args: &ClaimArgArray<Self::Api>,
+        grace_weeks_progress: &mut ClaimProgressGraceWeeks<Self::Api>,
+        shifting_progress: &mut ShiftingClaimProgress,
     ) -> PaymentsVec<Self::Api> {
         let mut all_rewards = PaymentsVec::new();
         for (id, project) in self.projects().iter() {
@@ -134,6 +132,22 @@ pub trait ClaimModule:
             if let Some(rewards) = opt_rewards {
                 all_rewards.push(rewards);
             }
+        }
+
+        for arg in claim_args {
+            // have to check again to prevent duplicate claims
+            let can_claim_grace_week = grace_weeks_progress.can_claim_for_week(arg.week);
+            let can_claim_shifting_week = shifting_progress.can_claim_for_week(arg.week);
+            require!(
+                can_claim_grace_week || can_claim_shifting_week,
+                ALREADY_CLAIMED_ERR_MSG
+            );
+
+            if grace_weeks_progress.is_week_valid(arg.week) {
+                grace_weeks_progress.set_claimed_for_week(arg.week);
+            }
+
+            shifting_progress.set_claimed_for_week(arg.week);
         }
 
         all_rewards
