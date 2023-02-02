@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::rewards::Week;
-use elrond_wasm::api::ED25519_SIGNATURE_BYTE_LEN;
+use multiversx_sc::api::ED25519_SIGNATURE_BYTE_LEN;
 
 // week + caller + user_delegation_amount + user_lkmex_staked_amount
 // 4 + 32 + (4 + 32) + (4 + 32) = 108, with some extra for high BigUint values
@@ -9,7 +9,7 @@ const MAX_DATA_LEN: usize = 120;
 
 pub type Signature<M> = ManagedByteArray<M, ED25519_SIGNATURE_BYTE_LEN>;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ValidationModule: crate::common_storage::CommonStorageModule {
     fn verify_signature(
         &self,

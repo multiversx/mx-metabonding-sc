@@ -1,15 +1,15 @@
-use elrond_wasm::{
+use multiversx_sc::{
     api::ED25519_SIGNATURE_BYTE_LEN,
-    elrond_codec::multi_types::OptionalValue,
+    codec::multi_types::OptionalValue,
     types::{Address, MultiValueEncoded},
 };
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxResult,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox::TxResult,
     DebugApi,
 };
-use elrond_wasm_modules::pause::PauseModule;
+use multiversx_sc_modules::pause::PauseModule;
 use metabonding::rewards::RewardsModule;
 use metabonding::*;
 use metabonding::{claim::ClaimModule, project::ProjectModule};

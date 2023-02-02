@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait AccessControlModule: crate::common_storage::CommonStorageModule {
     fn require_caller_owner_or_signer(&self) {
         let caller = self.blockchain().get_caller();

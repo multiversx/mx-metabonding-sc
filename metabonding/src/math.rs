@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::rewards::Week;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait MathModule {
     fn calculate_ratio(&self, amount: &BigUint, part: &BigUint, total: &BigUint) -> BigUint {
         if total == &0 {

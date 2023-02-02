@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::{
     project::PROJECT_EXPIRATION_WEEKS,
@@ -18,9 +18,9 @@ pub struct ClaimArgsWrapper<M: ManagedTypeApi> {
     pub checkpoint: RewardsCheckpoint<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ClaimModule:
-    elrond_wasm_modules::pause::PauseModule
+    multiversx_sc_modules::pause::PauseModule
     + crate::project::ProjectModule
     + crate::access_control::AccessControlModule
     + crate::common_storage::CommonStorageModule

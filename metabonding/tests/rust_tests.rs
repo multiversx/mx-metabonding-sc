@@ -1,6 +1,6 @@
 pub mod metabonding_setup;
 
-use elrond_wasm_debug::rust_biguint;
+use multiversx_sc_scenario::rust_biguint;
 use metabonding::claim::ClaimModule;
 use metabonding_setup::*;
 

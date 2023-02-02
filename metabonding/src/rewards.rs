@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::project::{Project, ProjectId, PROJECT_EXPIRATION_WEEKS};
 
@@ -13,9 +13,9 @@ pub struct RewardsCheckpoint<M: ManagedTypeApi> {
     pub total_lkmex_staked: BigUint<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait RewardsModule:
-    elrond_wasm_modules::pause::PauseModule
+    multiversx_sc_modules::pause::PauseModule
     + crate::project::ProjectModule
     + crate::access_control::AccessControlModule
     + crate::common_storage::CommonStorageModule
