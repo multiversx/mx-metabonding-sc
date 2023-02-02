@@ -1,8 +1,8 @@
 pub mod metabonding_setup;
 
-use multiversx_sc_scenario::rust_biguint;
-use metabonding::claim::ClaimModule;
+use metabonding::claim_progress::ClaimProgressModule;
 use metabonding_setup::*;
+use multiversx_sc_scenario::rust_biguint;
 
 #[test]
 fn init_test() {
@@ -166,7 +166,7 @@ fn claim_rewards_test() {
     // try claim wrong week
     mb_setup
         .call_claim_rewards(&first_user_addr, 5, 25_000, 0, &sig_first_user_week_1)
-        .assert_user_error("No checkpoint for week yet");
+        .assert_user_error("Invalid week number");
 
     // claim first user week 1 ok
     mb_setup
@@ -352,7 +352,7 @@ fn grace_period_test() {
     // user try claim week 1
     mb_setup
         .call_claim_rewards(&first_user_addr, 1, 25_000, 0, &sig_first_user_week_1)
-        .assert_user_error("Claiming too late");
+        .assert_user_error("Invalid week number");
 
     // set grace weeks to 6
     mb_setup

@@ -3,7 +3,7 @@ multiversx_sc::derive_imports!();
 
 use crate::{
     common_storage::{EPOCHS_IN_WEEK, MAX_PERCENTAGE},
-    rewards::Week,
+    rewards::{Week, FIRST_WEEK},
 };
 use core::convert::TryInto;
 
@@ -77,7 +77,10 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
             "Invalid reward token"
         );
         require!(reward_supply > 0, "Reward supply cannot be 0");
-        require!(duration_weeks > 0, "Invalid duration");
+        require!(
+            start_week >= FIRST_WEEK && duration_weeks > 0,
+            "Invalid duration"
+        );
 
         require!(
             lkmex_rewards_percentage <= MAX_PERCENTAGE,
