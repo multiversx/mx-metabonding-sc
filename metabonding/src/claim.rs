@@ -4,6 +4,7 @@ use elrond_wasm_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::{
     claim_progress::{ClaimProgressTracker, ShiftingClaimProgress},
+    project::{Project, ProjectId},
     rewards::{RewardsCheckpoint, Week, FIRST_WEEK},
     validation::Signature,
 };
@@ -51,7 +52,7 @@ pub trait ClaimModule:
         let caller = self.blockchain().get_caller();
         let current_week = self.get_current_week();
         let args = self.validate_and_collect_claim_args(&caller, current_week, raw_claim_args);
-        let rewards = self.claim_all_from_args(current_week, args);
+        let rewards = self.claim_all_project_rewards(current_week, &args);
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
         }
@@ -122,76 +123,89 @@ pub trait ClaimModule:
         args
     }
 
-    fn claim_all_from_args(
+    fn claim_all_project_rewards(
         &self,
         current_week: Week,
-        claim_args: ClaimArgArray<Self::Api>,
+        claim_args: &ClaimArgArray<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
         let mut all_rewards = PaymentsVec::new();
-
-        let projects_mapper = self.projects();
-        for (id, project) in projects_mapper.iter() {
-            let mut rewards_for_project = BigUint::zero();
-            for arg in &claim_args {
-                let opt_weekly_reward = self.get_weekly_reward_for_project(
-                    &id,
-                    &project,
-                    current_week,
-                    arg.week,
-                    &arg.user_delegation_amount,
-                    &arg.user_lkmex_staked_amount,
-                    &arg.checkpoint.total_delegation_supply,
-                    &arg.checkpoint.total_lkmex_staked,
-                );
-                if let Some(weekly_reward) = opt_weekly_reward {
-                    rewards_for_project += weekly_reward;
-                }
-            }
-
-            if rewards_for_project > 0 {
-                self.leftover_project_funds(&id)
-                    .update(|leftover| *leftover -= &rewards_for_project);
-
-                all_rewards.push(EsdtTokenPayment::new(
-                    project.reward_token,
-                    0,
-                    rewards_for_project,
-                ));
+        for (id, project) in self.projects().iter() {
+            let opt_rewards = self.claim_for_project(current_week, &id, project, claim_args);
+            if let Some(rewards) = opt_rewards {
+                all_rewards.push(rewards);
             }
         }
 
         all_rewards
     }
 
+    fn claim_for_project(
+        &self,
+        current_week: Week,
+        project_id: &ProjectId<Self::Api>,
+        project: Project<Self::Api>,
+        claim_args: &ClaimArgArray<Self::Api>,
+    ) -> Option<EsdtTokenPayment> {
+        let mut rewards_for_project = BigUint::zero();
+        for arg in claim_args {
+            let opt_weekly_reward =
+                self.get_weekly_reward_for_project(project_id, &project, current_week, arg);
+            if let Some(weekly_reward) = opt_weekly_reward {
+                rewards_for_project += weekly_reward;
+            }
+        }
+
+        if rewards_for_project == 0 {
+            return None;
+        }
+
+        self.leftover_project_funds(project_id)
+            .update(|leftover| *leftover -= &rewards_for_project);
+
+        let reward_payment = EsdtTokenPayment::new(project.reward_token, 0, rewards_for_project);
+        Some(reward_payment)
+    }
+
     #[view(getUserClaimableWeeks)]
     fn get_user_claimable_weeks(&self, user: ManagedAddress) -> MultiValueEncoded<Week> {
-        let mut weeks_list = MultiValueEncoded::new();
         let current_week = self.get_current_week();
         let last_checkpoint_week = self.get_last_checkpoint_week();
         if current_week == 0 || last_checkpoint_week == 0 {
-            return weeks_list;
+            return MultiValueEncoded::new();
         }
 
         let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
-        if current_week <= rewards_nr_first_grace_weeks {
-            let grace_weeks_progress =
-                self.get_grace_weeks_progress(&user, rewards_nr_first_grace_weeks, current_week);
-            for week in FIRST_WEEK..=last_checkpoint_week {
-                if grace_weeks_progress.can_claim_for_week(week) {
-                    weeks_list.push(week);
-                }
-            }
+        let claimable_weeks = if current_week <= rewards_nr_first_grace_weeks {
+            self.get_claimable_grace_weeks(&user, rewards_nr_first_grace_weeks, current_week)
         } else {
-            let shifting_progress = self.get_shifting_progress(&user, current_week);
-            let start_week =
-                ShiftingClaimProgress::get_first_index_week_for_new_current_week(current_week);
-            for week in start_week..=last_checkpoint_week {
-                if shifting_progress.can_claim_for_week(week) {
-                    weeks_list.push(week);
-                }
-            }
-        }
+            self.get_claimable_shifting_weeks(&user, current_week)
+        };
 
-        weeks_list
+        claimable_weeks.into()
+    }
+
+    fn get_claimable_grace_weeks(
+        &self,
+        user: &ManagedAddress,
+        grace_weeks: Week,
+        current_week: Week,
+    ) -> ManagedVec<Week> {
+        let grace_weeks_progress = self.get_grace_weeks_progress(user, grace_weeks, current_week);
+        let last_checkpoint_week = self.get_last_checkpoint_week();
+
+        self.get_claimable_weeks(&grace_weeks_progress, FIRST_WEEK, last_checkpoint_week)
+    }
+
+    fn get_claimable_shifting_weeks(
+        &self,
+        user: &ManagedAddress,
+        current_week: Week,
+    ) -> ManagedVec<Week> {
+        let shifting_progress = self.get_shifting_progress(user, current_week);
+        let start_week =
+            ShiftingClaimProgress::get_first_index_week_for_new_current_week(current_week);
+        let last_checkpoint_week = self.get_last_checkpoint_week();
+
+        self.get_claimable_weeks(&shifting_progress, start_week, last_checkpoint_week)
     }
 }

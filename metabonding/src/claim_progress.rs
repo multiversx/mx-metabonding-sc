@@ -137,6 +137,22 @@ impl ClaimProgressTracker for ShiftingClaimProgress {
 
 #[elrond_wasm::module]
 pub trait ClaimProgressModule {
+    fn get_claimable_weeks(
+        &self,
+        tracker: &dyn ClaimProgressTracker,
+        start_week: Week,
+        end_week: Week,
+    ) -> ManagedVec<Week> {
+        let mut claimable_weeks = ManagedVec::new();
+        for week in start_week..=end_week {
+            if tracker.can_claim_for_week(week) {
+                claimable_weeks.push(week);
+            }
+        }
+
+        claimable_weeks
+    }
+
     fn get_grace_weeks_progress(
         &self,
         user: &ManagedAddress,

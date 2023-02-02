@@ -22,8 +22,8 @@ pub trait LegacyStorageCleanupModule:
                 self.legacy_rewards_claimed_flag(&user, week).clear();
             }
 
-            self.claim_progress_grace_weeks(&user).set(&grace_progress);
-            self.shifting_claim_progress(&user).set(&shifting_progress);
+            self.claim_progress_grace_weeks(&user).set(grace_progress);
+            self.shifting_claim_progress(&user).set(shifting_progress);
         }
     }
 }
