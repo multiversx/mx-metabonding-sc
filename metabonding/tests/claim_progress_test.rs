@@ -1,5 +1,8 @@
 pub mod metabonding_setup;
 
+use multiversx_sc::types::{ManagedVec, MultiValueEncoded};
+use multiversx_sc_scenario::{managed_address, rust_biguint};
+
 use metabonding::{
     claim_progress::{ClaimProgressGraceWeeks, ClaimProgressModule, ShiftingClaimProgress},
     legacy_storage_cleanup::LegacyStorageCleanupModule,
