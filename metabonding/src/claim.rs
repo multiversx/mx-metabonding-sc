@@ -67,13 +67,16 @@ pub trait ClaimModule:
         let last_checkpoint_week = self.get_last_checkpoint_week();
 
         let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
-        let mut grace_weeks_progress =
-            self.get_grace_weeks_progress(&caller, rewards_nr_first_grace_weeks, current_week);
-        let mut shifting_progress = self.get_shifting_progress(&caller, current_week);
+        let mut grace_weeks_progress = self.get_grace_weeks_progress(
+            &original_caller,
+            rewards_nr_first_grace_weeks,
+            current_week,
+        );
+        let mut shifting_progress = self.get_shifting_progress(&original_caller, current_week);
 
         let signed_args = self.collect_claim_args(raw_claim_args);
         let args = self.validate_claim_args(
-            &caller,
+            &original_caller,
             signed_args,
             &grace_weeks_progress,
             &shifting_progress,
@@ -87,9 +90,10 @@ pub trait ClaimModule:
             &mut shifting_progress,
         );
 
-        self.claim_progress_grace_weeks(&caller)
+        self.claim_progress_grace_weeks(&original_caller)
             .set(grace_weeks_progress);
-        self.shifting_claim_progress(&caller).set(shifting_progress);
+        self.shifting_claim_progress(&original_caller)
+            .set(shifting_progress);
 
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
