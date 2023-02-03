@@ -1,21 +1,21 @@
-use multiversx_sc::{
-    api::ED25519_SIGNATURE_BYTE_LEN,
-    codec::multi_types::OptionalValue,
-    types::{Address, MultiValueEncoded},
-};
-use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
-    whitebox::TxResult,
-    DebugApi,
-};
-use multiversx_sc_modules::pause::PauseModule;
 use metabonding::rewards::RewardsModule;
 use metabonding::*;
 use metabonding::{claim::ClaimModule, project::ProjectModule};
 use metabonding::{
     common_storage::{CommonStorageModule, EPOCHS_IN_WEEK},
     rewards::Week,
+};
+use multiversx_sc::{
+    api::ED25519_SIGNATURE_BYTE_LEN,
+    codec::multi_types::OptionalValue,
+    types::{Address, MultiValueEncoded},
+};
+use multiversx_sc_modules::pause::PauseModule;
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
+    whitebox::TxResult,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    DebugApi,
 };
 
 // associated private key - used for generating the signatures (please don't steal my funds)
@@ -90,11 +90,7 @@ where
         b_mock
             .execute_tx(&owner_addr, &mb_wrapper, &rust_zero, |sc| {
                 let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
-                sc.init(
-                    signer_addr.clone(),
-                    OptionalValue::None,
-                    OptionalValue::None,
-                );
+                sc.init(signer_addr.clone(), OptionalValue::None);
 
                 assert_eq!(sc.first_week_start_epoch().get(), 5);
                 assert_eq!(sc.signer().get(), signer_addr);

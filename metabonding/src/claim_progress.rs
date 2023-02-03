@@ -23,40 +23,6 @@ pub trait ClaimProgressTracker {
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
-pub struct ClaimProgressGraceWeeks<M: ManagedTypeApi> {
-    claim_flags: ManagedVec<M, ClaimFlag>,
-}
-
-impl<M: ManagedTypeApi> ClaimProgressGraceWeeks<M> {
-    #[inline]
-    pub fn new(claim_flags: ManagedVec<M, ClaimFlag>) -> Self {
-        Self { claim_flags }
-    }
-}
-
-impl<M: ManagedTypeApi> ClaimProgressTracker for ClaimProgressGraceWeeks<M> {
-    fn is_week_valid(&self, week: Week) -> bool {
-        week < self.claim_flags.len()
-    }
-
-    fn can_claim_for_week(&self, week: Week) -> bool {
-        if !self.is_week_valid(week) {
-            return false;
-        }
-
-        !self.claim_flags.get(week)
-    }
-
-    fn set_claimed_for_week(&mut self, week: Week) {
-        if !self.is_week_valid(week) {
-            return;
-        }
-
-        let _ = self.claim_flags.set(week, &CLAIMED);
-    }
-}
-
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub struct ShiftingClaimProgress {
     claim_flags: ClaimFlagsArray,
     first_index_week: Week,
@@ -137,9 +103,9 @@ impl ClaimProgressTracker for ShiftingClaimProgress {
 
 #[multiversx_sc::module]
 pub trait ClaimProgressModule {
-    fn get_claimable_weeks(
+    fn get_claimable_weeks<CPT: ClaimProgressTracker>(
         &self,
-        tracker: &dyn ClaimProgressTracker,
+        tracker: &CPT,
         start_week: Week,
         end_week: Week,
     ) -> ManagedVec<Week> {
@@ -153,37 +119,12 @@ pub trait ClaimProgressModule {
         claimable_weeks
     }
 
-    fn get_grace_weeks_progress(
-        &self,
-        user: &ManagedAddress,
-        nr_first_grace_weeks: Week,
-        current_week: Week,
-    ) -> ClaimProgressGraceWeeks<Self::Api> {
-        if current_week > nr_first_grace_weeks {
-            return ClaimProgressGraceWeeks::new(ManagedVec::new());
-        }
-
-        let mapper = self.claim_progress_grace_weeks(user);
-        if !mapper.is_empty() {
-            return mapper.get();
-        }
-
-        // index 0 is unused
-        let mut claim_flags = ManagedVec::from_single_item(NOT_CLAIMED);
-        for week in FIRST_WEEK..=nr_first_grace_weeks {
-            let old_flag = self.legacy_rewards_claimed_flag(user, week).get();
-            claim_flags.push(old_flag);
-        }
-
-        ClaimProgressGraceWeeks::new(claim_flags)
-    }
-
-    fn get_shifting_progress(
+    fn get_claim_progress(
         &self,
         user: &ManagedAddress,
         current_week: Week,
     ) -> ShiftingClaimProgress {
-        let mapper = self.shifting_claim_progress(user);
+        let mapper = self.claim_progress(user);
         if !mapper.is_empty() {
             let mut existing_progress = mapper.get();
             existing_progress.shift_if_needed(current_week);
@@ -202,20 +143,8 @@ pub trait ClaimProgressModule {
         ShiftingClaimProgress::new(claim_flags, current_week)
     }
 
-    #[storage_mapper("rewardsNrFirstGraceWeeks")]
-    fn rewards_nr_first_grace_weeks(&self) -> SingleValueMapper<Week>;
-
-    #[storage_mapper("claimProgressGraceWeeks")]
-    fn claim_progress_grace_weeks(
-        &self,
-        user: &ManagedAddress,
-    ) -> SingleValueMapper<ClaimProgressGraceWeeks<Self::Api>>;
-
-    #[storage_mapper("shiftingClaimProgress")]
-    fn shifting_claim_progress(
-        &self,
-        user: &ManagedAddress,
-    ) -> SingleValueMapper<ShiftingClaimProgress>;
+    #[storage_mapper("claimProgress")]
+    fn claim_progress(&self, user: &ManagedAddress) -> SingleValueMapper<ShiftingClaimProgress>;
 
     #[storage_mapper("rewardsClaimed")]
     fn legacy_rewards_claimed_flag(

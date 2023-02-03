@@ -3,9 +3,9 @@ multiversx_sc::imports!();
 use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::{
-    claim_progress::{ClaimProgressGraceWeeks, ClaimProgressTracker, ShiftingClaimProgress},
+    claim_progress::{ClaimProgressTracker, ShiftingClaimProgress},
     project::{Project, ProjectId},
-    rewards::{RewardsCheckpoint, Week, FIRST_WEEK},
+    rewards::{RewardsCheckpoint, Week},
     validation::{Signature, ALREADY_CLAIMED_ERR_MSG},
 };
 
@@ -14,17 +14,12 @@ const CLAIM_NR_ARGS_PER_PAIR: usize = 4;
 
 pub type ClaimArgPair<M> = MultiValue4<Week, BigUint<M>, BigUint<M>, Signature<M>>;
 pub type ClaimArgArray<M> = ArrayVec<ClaimArgsWrapper<M>, MAX_CLAIM_ARG_PAIRS>;
-pub type SignedClaimArgArray<M> = ArrayVec<SignedClaimArgs<M>, MAX_CLAIM_ARG_PAIRS>;
 
 pub struct ClaimArgsWrapper<M: ManagedTypeApi> {
     pub week: Week,
     pub user_delegation_amount: BigUint<M>,
     pub user_lkmex_staked_amount: BigUint<M>,
     pub checkpoint: RewardsCheckpoint<M>,
-}
-
-pub struct SignedClaimArgs<M: ManagedTypeApi> {
-    pub args_wrapper: ClaimArgsWrapper<M>,
     pub signature: Signature<M>,
 }
 
@@ -64,36 +59,19 @@ pub trait ClaimModule:
         }
 
         let current_week = self.get_current_week();
+        let mut claim_progress = self.get_claim_progress(&original_caller, current_week);
+
         let last_checkpoint_week = self.get_last_checkpoint_week();
-
-        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
-        let mut grace_weeks_progress = self.get_grace_weeks_progress(
+        let args = self.collect_claim_args(raw_claim_args);
+        self.validate_claim_args(
             &original_caller,
-            rewards_nr_first_grace_weeks,
-            current_week,
-        );
-        let mut shifting_progress = self.get_shifting_progress(&original_caller, current_week);
-
-        let signed_args = self.collect_claim_args(raw_claim_args);
-        let args = self.validate_claim_args(
-            &original_caller,
-            signed_args,
-            &grace_weeks_progress,
-            &shifting_progress,
+            &args,
+            &claim_progress,
             last_checkpoint_week,
         );
 
-        let rewards = self.claim_all_project_rewards(
-            current_week,
-            &args,
-            &mut grace_weeks_progress,
-            &mut shifting_progress,
-        );
-
-        self.claim_progress_grace_weeks(&original_caller)
-            .set(grace_weeks_progress);
-        self.shifting_claim_progress(&original_caller)
-            .set(shifting_progress);
+        let rewards = self.claim_all_project_rewards(current_week, &args, &mut claim_progress);
+        self.claim_progress(&original_caller).set(claim_progress);
 
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
@@ -105,7 +83,7 @@ pub trait ClaimModule:
     fn collect_claim_args(
         &self,
         raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
-    ) -> SignedClaimArgArray<Self::Api> {
+    ) -> ClaimArgArray<Self::Api> {
         require!(
             raw_claim_args.raw_len() / CLAIM_NR_ARGS_PER_PAIR <= MAX_CLAIM_ARG_PAIRS,
             "Too many arguments"
@@ -119,14 +97,11 @@ pub trait ClaimModule:
                 .rewards_checkpoints()
                 .get_or_else(week, RewardsCheckpoint::default);
 
-            let args_wrapper = ClaimArgsWrapper {
+            let arg = ClaimArgsWrapper {
                 week,
                 user_delegation_amount,
                 user_lkmex_staked_amount,
                 checkpoint,
-            };
-            let arg = SignedClaimArgs {
-                args_wrapper,
                 signature,
             };
 
@@ -142,8 +117,7 @@ pub trait ClaimModule:
         &self,
         current_week: Week,
         claim_args: &ClaimArgArray<Self::Api>,
-        grace_weeks_progress: &mut ClaimProgressGraceWeeks<Self::Api>,
-        shifting_progress: &mut ShiftingClaimProgress,
+        claim_progress: &mut ShiftingClaimProgress,
     ) -> PaymentsVec<Self::Api> {
         let mut all_rewards = PaymentsVec::new();
         for (id, project) in self.projects().iter() {
@@ -155,18 +129,12 @@ pub trait ClaimModule:
 
         for arg in claim_args {
             // have to check again to prevent duplicate claims
-            let can_claim_grace_week = grace_weeks_progress.can_claim_for_week(arg.week);
-            let can_claim_shifting_week = shifting_progress.can_claim_for_week(arg.week);
             require!(
-                can_claim_grace_week || can_claim_shifting_week,
+                claim_progress.can_claim_for_week(arg.week),
                 ALREADY_CLAIMED_ERR_MSG
             );
 
-            if grace_weeks_progress.is_week_valid(arg.week) {
-                grace_weeks_progress.set_claimed_for_week(arg.week);
-            }
-
-            shifting_progress.set_claimed_for_week(arg.week);
+            claim_progress.set_claimed_for_week(arg.week);
         }
 
         all_rewards
@@ -207,26 +175,8 @@ pub trait ClaimModule:
             return MultiValueEncoded::new();
         }
 
-        let rewards_nr_first_grace_weeks = self.rewards_nr_first_grace_weeks().get();
-        let claimable_weeks = if current_week <= rewards_nr_first_grace_weeks {
-            self.get_claimable_grace_weeks(&user, rewards_nr_first_grace_weeks, current_week)
-        } else {
-            self.get_claimable_shifting_weeks(&user, current_week)
-        };
-
-        claimable_weeks.into()
-    }
-
-    fn get_claimable_grace_weeks(
-        &self,
-        user: &ManagedAddress,
-        grace_weeks: Week,
-        current_week: Week,
-    ) -> ManagedVec<Week> {
-        let grace_weeks_progress = self.get_grace_weeks_progress(user, grace_weeks, current_week);
-        let last_checkpoint_week = self.get_last_checkpoint_week();
-
-        self.get_claimable_weeks(&grace_weeks_progress, FIRST_WEEK, last_checkpoint_week)
+        self.get_claimable_shifting_weeks(&user, current_week)
+            .into()
     }
 
     fn get_claimable_shifting_weeks(
@@ -234,11 +184,11 @@ pub trait ClaimModule:
         user: &ManagedAddress,
         current_week: Week,
     ) -> ManagedVec<Week> {
-        let shifting_progress = self.get_shifting_progress(user, current_week);
+        let claim_progress = self.get_claim_progress(user, current_week);
         let start_week =
             ShiftingClaimProgress::get_first_index_week_for_new_current_week(current_week);
         let last_checkpoint_week = self.get_last_checkpoint_week();
 
-        self.get_claimable_weeks(&shifting_progress, start_week, last_checkpoint_week)
+        self.get_claimable_weeks(&claim_progress, start_week, last_checkpoint_week)
     }
 }

@@ -1,6 +1,5 @@
 pub mod metabonding_setup;
 
-use metabonding::claim_progress::ClaimProgressModule;
 use metabonding_setup::*;
 use multiversx_sc_scenario::rust_biguint;
 
@@ -316,60 +315,6 @@ fn claim_rewards_multiple_test() {
     mb_setup
         .call_claim_rewards(&first_user_addr, 2, 25_000, 0, &sig_first_user_week_1)
         .assert_user_error("Already claimed rewards for this week");
-}
-
-#[test]
-fn grace_period_test() {
-    let mut mb_setup = MetabondingSetup::new(metabonding::contract_obj);
-    mb_setup.add_default_projects();
-    mb_setup.deposit_rewards_default_projects();
-    mb_setup.add_default_checkpoints();
-    mb_setup.call_unpause().assert_ok();
-
-    let owner_addr = mb_setup.owner_addr.clone();
-    let first_user_addr = mb_setup.first_user_addr.clone();
-    let sig_first_user_week_1 = hex_literal::hex!("d47c0d67b2d25de8b4a3f43d91a2b5ccb522afac47321ae80bf89c90a4445b26adefa693ab685fa20891f736d74eb2dedc11c4b1a8d6e642fa28df270d6ebe08");
-
-    // set current week = 6
-    mb_setup.b_mock.set_block_epoch(50);
-
-    // get claimable weeks - only able to claim week 2
-    let claimable_weeks = mb_setup.get_user_claimable_weeks(&first_user_addr);
-    assert_eq!(claimable_weeks, &[2usize]);
-
-    // set grace period of 5 weeks,
-    mb_setup
-        .b_mock
-        .execute_tx(&owner_addr, &mb_setup.mb_wrapper, &rust_biguint!(0), |sc| {
-            sc.rewards_nr_first_grace_weeks().set(5);
-        })
-        .assert_ok();
-
-    // get claimable weeks - user still can only claim for week 2
-    let claimable_weeks = mb_setup.get_user_claimable_weeks(&first_user_addr);
-    assert_eq!(claimable_weeks, &[2usize]);
-
-    // user try claim week 1
-    mb_setup
-        .call_claim_rewards(&first_user_addr, 1, 25_000, 0, &sig_first_user_week_1)
-        .assert_user_error("Invalid week number");
-
-    // set grace weeks to 6
-    mb_setup
-        .b_mock
-        .execute_tx(&owner_addr, &mb_setup.mb_wrapper, &rust_biguint!(0), |sc| {
-            sc.rewards_nr_first_grace_weeks().set(6);
-        })
-        .assert_ok();
-
-    // get claimable weeks - user can now claim for week 1 and 2
-    let claimable_weeks = mb_setup.get_user_claimable_weeks(&first_user_addr);
-    assert_eq!(claimable_weeks, &[1usize, 2usize]);
-
-    // user claim week 1 ok
-    mb_setup
-        .call_claim_rewards(&first_user_addr, 1, 25_000, 0, &sig_first_user_week_1)
-        .assert_ok();
 }
 
 #[test]
