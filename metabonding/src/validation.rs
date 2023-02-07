@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 
 use crate::{
     claim::{ClaimArgArray, ClaimArgsWrapper, NO_CLAIM_ARGS_ERR_MSG},
-    claim_progress::{ClaimProgressTracker, ShiftingClaimProgress},
+    claim_progress::{ClaimFlag, ClaimProgressTracker, ShiftingClaimProgress},
     rewards::{Week, FIRST_WEEK},
 };
 use multiversx_sc::api::ED25519_SIGNATURE_BYTE_LEN;
@@ -77,6 +77,11 @@ pub trait ValidationModule: crate::common_storage::CommonStorageModule {
             claim_progress.is_week_valid(claim_week),
             INVALID_WEEK_NR_ERR_MSG
         );
+
+        let claim_flag = claim_progress.get_claim_flags_for_week(claim_week);
+        if let ClaimFlag::Claimed { unclaimed_projects } = claim_flag {
+            require!(!unclaimed_projects.is_empty(), ALREADY_CLAIMED_ERR_MSG);
+        }
 
         self.verify_signature(caller, claim_arg);
     }

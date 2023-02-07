@@ -19,7 +19,7 @@ pub type ClaimArgPair<M> = MultiValue4<Week, BigUint<M>, BigUint<M>, Signature<M
 pub type ClaimArgArray<M> = ArrayVec<ClaimArgsWrapper<M>, MAX_CLAIM_ARG_PAIRS>;
 pub type FlagsArray<M> = ArrayVec<ClaimFlag<M>, MAX_CLAIM_ARG_PAIRS>;
 
-#[derive(TypeAbi, TopEncode)]
+#[derive(TypeAbi, TopEncode, TopDecode)]
 pub enum ClaimableTokens<M: ManagedTypeApi> {
     All,
     Partial { unclaimed_projects: ProjIdsVec<M> },

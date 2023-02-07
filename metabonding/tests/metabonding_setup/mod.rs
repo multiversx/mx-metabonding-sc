@@ -392,7 +392,8 @@ where
             .execute_query(&self.mb_wrapper, |sc| {
                 let result = sc.get_user_claimable_weeks(managed_address!(user_addr));
 
-                for week in &result.to_vec() {
+                for multi_value in result {
+                    let (week, _) = multi_value.into_tuple();
                     weeks.push(week);
                 }
             })

@@ -37,7 +37,9 @@ type ClaimFlagsArray<M> = ArrayVec<ClaimFlag<M>, CLAIM_FLAGS_LEN>;
 
 fn default_claim_flags<M: ManagedTypeApi>() -> ClaimFlagsArray<M> {
     let mut array = ArrayVec::new();
-    array.fill(ClaimFlag::NotClaimed);
+    for _ in 0..CLAIM_FLAGS_LEN {
+        unsafe { array.push_unchecked(ClaimFlag::NotClaimed) };
+    }
 
     array
 }
