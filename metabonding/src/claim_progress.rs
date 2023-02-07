@@ -93,10 +93,8 @@ impl<M: ManagedTypeApi> ShiftingClaimProgress<M> {
         if nr_shifts < CLAIM_FLAGS_LEN {
             // shift to the left by nr_shifts
             let _ = self.claim_flags.drain(0..nr_shifts);
-
-            let new_pos_first_index = CLAIM_FLAGS_LEN - nr_shifts;
-            for i in new_pos_first_index..CLAIM_FLAGS_LEN {
-                self.claim_flags[i] = ClaimFlag::NotClaimed;
+            for _ in 0..nr_shifts {
+                unsafe { self.claim_flags.push_unchecked(ClaimFlag::NotClaimed) };
             }
         } else {
             self.claim_flags = default_claim_flags();
@@ -184,60 +182,119 @@ pub trait ClaimProgressModule {
 
 #[cfg(test)]
 mod claim_progress_tests {
+    use multiversx_sc_scenario::DebugApi;
+
     use super::*;
 
     #[test]
     fn claim_progress_shift_test() {
-        // let mut progress = ShiftingClaimProgress {
-        //     claim_flags: [true, false, true, true, false],
-        //     first_index_week: FIRST_WEEK,
-        // };
+        let _ = DebugApi::dummy();
+        let not_claimed = ClaimFlag::NotClaimed;
+        let claimed = ClaimFlag::Claimed {
+            unclaimed_projects: ManagedVec::new(),
+        };
 
-        // // no shift needed
-        // for i in FIRST_WEEK..=CLAIM_FLAGS_LEN {
-        //     progress.shift_if_needed(i);
-        //     assert!(
-        //         progress.claim_flags == [true, false, true, true, false]
-        //             && progress.first_index_week == FIRST_WEEK
-        //     );
-        // }
+        let mut progress = ShiftingClaimProgress::<DebugApi> {
+            claim_flags: [
+                claimed.clone(),
+                not_claimed.clone(),
+                claimed.clone(),
+                claimed.clone(),
+                not_claimed.clone(),
+            ]
+            .into(),
+            first_index_week: FIRST_WEEK,
+        };
 
-        // // shift by 1
-        // let mut expected_first_index_week = FIRST_WEEK + 1;
-        // let mut current_week = CLAIM_FLAGS_LEN + 1;
-        // progress.shift_if_needed(current_week);
-        // assert!(
-        //     progress.claim_flags == [false, true, true, false, false]
-        //         && progress.first_index_week == expected_first_index_week
-        // );
+        // no shift needed
+        for i in FIRST_WEEK..=CLAIM_FLAGS_LEN {
+            progress.shift_if_needed(i);
+            assert!(
+                progress.claim_flags.as_slice()
+                    == &[
+                        claimed.clone(),
+                        not_claimed.clone(),
+                        claimed.clone(),
+                        claimed.clone(),
+                        not_claimed.clone(),
+                    ]
+                    && progress.first_index_week == FIRST_WEEK
+            );
+        }
 
-        // // shift by 2
-        // expected_first_index_week += 2;
-        // current_week += 2;
-        // progress.shift_if_needed(current_week);
-        // assert!(
-        //     progress.claim_flags == [true, false, false, false, false]
-        //         && progress.first_index_week == expected_first_index_week
-        // );
+        // shift by 1
+        let mut expected_first_index_week = FIRST_WEEK + 1;
+        let mut current_week = CLAIM_FLAGS_LEN + 1;
+        progress.shift_if_needed(current_week);
+        assert!(
+            progress.claim_flags.as_slice()
+                == &[
+                    not_claimed.clone(),
+                    claimed.clone(),
+                    claimed.clone(),
+                    not_claimed.clone(),
+                    not_claimed.clone(),
+                ]
+                && progress.first_index_week == expected_first_index_week
+        );
 
-        // // test full shift
-        // progress.claim_flags = [true; CLAIM_FLAGS_LEN];
-        // expected_first_index_week += CLAIM_FLAGS_LEN;
-        // current_week += CLAIM_FLAGS_LEN;
-        // progress.shift_if_needed(current_week);
-        // assert!(
-        //     progress.claim_flags == [false; CLAIM_FLAGS_LEN]
-        //         && progress.first_index_week == expected_first_index_week
-        // );
+        // shift by 2
+        expected_first_index_week += 2;
+        current_week += 2;
+        progress.shift_if_needed(current_week);
+        assert!(
+            progress.claim_flags.as_slice()
+                == &[
+                    claimed.clone(),
+                    not_claimed.clone(),
+                    not_claimed.clone(),
+                    not_claimed.clone(),
+                    not_claimed.clone(),
+                ]
+                && progress.first_index_week == expected_first_index_week
+        );
 
-        // // shift all flags but 1
-        // progress.claim_flags = [true; CLAIM_FLAGS_LEN];
-        // expected_first_index_week += CLAIM_FLAGS_LEN - 1;
-        // current_week += CLAIM_FLAGS_LEN - 1;
-        // progress.shift_if_needed(current_week);
-        // assert!(
-        //     progress.claim_flags == [true, false, false, false, false]
-        //         && progress.first_index_week == expected_first_index_week
-        // );
+        // test full shift
+        progress.claim_flags = [
+            claimed.clone(),
+            claimed.clone(),
+            claimed.clone(),
+            claimed.clone(),
+            claimed.clone(),
+        ]
+        .into();
+
+        expected_first_index_week += CLAIM_FLAGS_LEN;
+        current_week += CLAIM_FLAGS_LEN;
+        progress.shift_if_needed(current_week);
+        assert!(
+            progress.claim_flags == default_claim_flags()
+                && progress.first_index_week == expected_first_index_week
+        );
+
+        // shift all flags but 1
+        progress.claim_flags = [
+            claimed.clone(),
+            claimed.clone(),
+            claimed.clone(),
+            claimed.clone(),
+            claimed.clone(),
+        ]
+        .into();
+
+        expected_first_index_week += CLAIM_FLAGS_LEN - 1;
+        current_week += CLAIM_FLAGS_LEN - 1;
+        progress.shift_if_needed(current_week);
+        assert!(
+            progress.claim_flags.as_slice()
+                == &[
+                    claimed.clone(),
+                    not_claimed.clone(),
+                    not_claimed.clone(),
+                    not_claimed.clone(),
+                    not_claimed.clone(),
+                ]
+                && progress.first_index_week == expected_first_index_week
+        );
     }
 }
