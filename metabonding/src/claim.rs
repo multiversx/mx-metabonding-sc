@@ -60,7 +60,39 @@ pub trait ClaimModule:
         &self,
         original_caller: ManagedAddress,
         raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
-    ) -> ManagedVec<EsdtTokenPayment> {
+    ) -> PaymentsVec<Self::Api> {
+        let all_projects = self.get_all_project_ids();
+        self.claim_common(
+            original_caller,
+            &all_projects,
+            &all_projects,
+            raw_claim_args,
+        )
+    }
+
+    #[endpoint(claimPartialRewards)]
+    fn claim_partial_rewards(
+        &self,
+        original_caller: ManagedAddress,
+        projects_to_claim: ProjIdsVec<Self::Api>,
+        raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
+    ) -> PaymentsVec<Self::Api> {
+        let all_projects = self.get_all_project_ids();
+        self.claim_common(
+            original_caller,
+            &projects_to_claim,
+            &all_projects,
+            raw_claim_args,
+        )
+    }
+
+    fn claim_common(
+        &self,
+        original_caller: ManagedAddress,
+        projects_to_claim: &ProjIdsVec<Self::Api>,
+        all_projects: &ProjIdsVec<Self::Api>,
+        raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
+    ) -> PaymentsVec<Self::Api> {
         require!(self.not_paused(), "May not claim rewards while paused");
 
         let caller = self.blockchain().get_caller();
@@ -81,12 +113,11 @@ pub trait ClaimModule:
             last_checkpoint_week,
         );
 
-        let all_projects = self.get_all_project_ids();
         let rewards = self.claim_all_project_rewards(
             current_week,
             &args,
             &mut claim_progress,
-            &all_projects,
+            &projects_to_claim,
             &all_projects,
         );
         self.claim_progress(&original_caller).set(claim_progress);
