@@ -117,8 +117,8 @@ pub trait ClaimModule:
             current_week,
             &args,
             &mut claim_progress,
-            &projects_to_claim,
-            &all_projects,
+            projects_to_claim,
+            all_projects,
         );
         self.claim_progress(&original_caller).set(claim_progress);
 

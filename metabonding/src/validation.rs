@@ -54,7 +54,7 @@ pub trait ValidationModule: crate::common_storage::CommonStorageModule {
         require!(opt_prev_elem.is_some(), NO_CLAIM_ARGS_ERR_MSG);
 
         let mut prev_elem = unsafe { opt_prev_elem.unwrap_unchecked() };
-        while let Some(current_elem) = iterator.next() {
+        for current_elem in iterator {
             require!(prev_elem.week != current_elem.week, "Duplicate claim args");
 
             prev_elem = current_elem;

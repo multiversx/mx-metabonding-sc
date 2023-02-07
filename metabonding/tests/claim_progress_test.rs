@@ -56,8 +56,8 @@ fn claim_progress_migration_test() {
                         claimed.clone(),
                         not_claimed.clone(),
                         not_claimed.clone(),
-                        claimed.clone(),
-                        not_claimed.clone(),
+                        claimed,
+                        not_claimed,
                     ]
                     .into(),
                     6,
@@ -115,8 +115,8 @@ fn claim_progress_cleanup_test() {
                         claimed.clone(),
                         claimed.clone(),
                         not_claimed.clone(),
-                        not_claimed.clone(),
-                        claimed.clone(),
+                        not_claimed,
+                        claimed,
                     ]
                     .into(),
                     5,

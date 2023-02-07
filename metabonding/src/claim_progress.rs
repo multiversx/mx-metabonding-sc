@@ -213,7 +213,7 @@ mod claim_progress_tests {
             progress.shift_if_needed(i);
             assert!(
                 progress.claim_flags.as_slice()
-                    == &[
+                    == [
                         claimed.clone(),
                         not_claimed.clone(),
                         claimed.clone(),
@@ -230,7 +230,7 @@ mod claim_progress_tests {
         progress.shift_if_needed(current_week);
         assert!(
             progress.claim_flags.as_slice()
-                == &[
+                == [
                     not_claimed.clone(),
                     claimed.clone(),
                     claimed.clone(),
@@ -246,7 +246,7 @@ mod claim_progress_tests {
         progress.shift_if_needed(current_week);
         assert!(
             progress.claim_flags.as_slice()
-                == &[
+                == [
                     claimed.clone(),
                     not_claimed.clone(),
                     not_claimed.clone(),
@@ -289,12 +289,12 @@ mod claim_progress_tests {
         progress.shift_if_needed(current_week);
         assert!(
             progress.claim_flags.as_slice()
-                == &[
-                    claimed.clone(),
+                == [
+                    claimed,
                     not_claimed.clone(),
                     not_claimed.clone(),
                     not_claimed.clone(),
-                    not_claimed.clone(),
+                    not_claimed,
                 ]
                 && progress.first_index_week == expected_first_index_week
         );

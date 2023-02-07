@@ -57,7 +57,7 @@ fn claim_partial_ok_test() {
                     },
                     not_claimed.clone(),
                     not_claimed.clone(),
-                    not_claimed.clone(),
+                    not_claimed,
                 ]
                 .into(),
                 2,
@@ -104,7 +104,7 @@ fn claim_partial_ok_test() {
                     },
                     not_claimed.clone(),
                     not_claimed.clone(),
-                    not_claimed.clone(),
+                    not_claimed,
                 ]
                 .into(),
                 2,
@@ -151,7 +151,7 @@ fn claim_partial_ok_test() {
                     },
                     not_claimed.clone(),
                     not_claimed.clone(),
-                    not_claimed.clone(),
+                    not_claimed,
                 ]
                 .into(),
                 2,
@@ -204,7 +204,7 @@ fn claim_partial_ok_test() {
                     },
                     not_claimed.clone(),
                     not_claimed.clone(),
-                    not_claimed.clone(),
+                    not_claimed,
                 ]
                 .into(),
                 2,
@@ -254,7 +254,7 @@ fn claim_partial_ok_test() {
                     },
                     not_claimed.clone(),
                     not_claimed.clone(),
-                    not_claimed.clone(),
+                    not_claimed,
                 ]
                 .into(),
                 2,
