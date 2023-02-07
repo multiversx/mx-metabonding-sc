@@ -256,7 +256,7 @@ where
 
         self.b_mock
             .execute_query(&self.mb_wrapper, |sc| {
-                let result = sc.get_all_project_ids();
+                let result = sc.get_all_project_ids_view();
 
                 for id in &result.to_vec() {
                     all_ids.push(id.to_boxed_bytes().as_slice().to_vec());

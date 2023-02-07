@@ -13,6 +13,7 @@ const MIN_GAS_FOR_CLEAR: u64 = 5_000_000;
 static INVALID_PROJECT_ID_ERR_MSG: &[u8] = b"Invalid project ID";
 
 pub type ProjectId<M> = ManagedBuffer<M>;
+pub type ProjIdsVec<M> = ManagedVec<M, ProjectId<M>>;
 pub type ProjectAsMultiResult<M> =
     MultiValue5<TokenIdentifier<M>, BigUint<M>, BigUint<M>, Week, Week>;
 pub type Epoch = u64;
@@ -171,13 +172,17 @@ pub trait ProjectModule: crate::common_storage::CommonStorageModule {
     }
 
     #[view(getAllProjectIds)]
-    fn get_all_project_ids(&self) -> MultiValueEncoded<ProjectId<Self::Api>> {
+    fn get_all_project_ids_view(&self) -> MultiValueEncoded<ProjectId<Self::Api>> {
+        self.get_all_project_ids().into()
+    }
+
+    fn get_all_project_ids(&self) -> ProjIdsVec<Self::Api> {
         let mut all_ids = ManagedVec::new();
         for id in self.projects().keys() {
             all_ids.push(id);
         }
 
-        all_ids.into()
+        all_ids
     }
 
     /// Returns a project by ID. The results are, in order:
