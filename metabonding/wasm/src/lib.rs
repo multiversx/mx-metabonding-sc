@@ -21,6 +21,8 @@ elrond_wasm_node::wasm_endpoints! {
         addProject
         removeProject
         clearExpiredProjects
+        clearOldStorageFlags
+        depositRewards
         getAllProjectIds
         getProjectById
         getCurrentWeek

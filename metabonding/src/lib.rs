@@ -6,7 +6,9 @@ elrond_wasm::imports!();
 
 pub mod access_control;
 pub mod claim;
+pub mod claim_progress;
 pub mod common_storage;
+pub mod legacy_storage_cleanup;
 pub mod math;
 pub mod project;
 pub mod rewards;
@@ -20,10 +22,12 @@ pub trait Metabonding:
     + project::ProjectModule
     + rewards::RewardsModule
     + claim::ClaimModule
+    + claim_progress::ClaimProgressModule
     + access_control::AccessControlModule
     + common_storage::CommonStorageModule
     + math::MathModule
     + validation::ValidationModule
+    + legacy_storage_cleanup::LegacyStorageCleanupModule
     + sc_whitelist_module::SCWhitelistModule
 {
     /// Arguments:
