@@ -4,6 +4,7 @@ multiversx_sc::derive_imports!();
 use crate::{
     claim::ClaimArgsWrapper,
     project::{Project, ProjectId},
+    validation::Signature,
 };
 
 pub type Week = usize;
@@ -119,6 +120,7 @@ pub trait RewardsModule:
             user_delegation_amount,
             user_lkmex_staked_amount,
             checkpoint,
+            signature: Signature::default(),
         };
 
         let mut rewards_pretty = MultiValueEncoded::new();
