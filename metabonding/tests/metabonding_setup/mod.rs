@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use metabonding::rewards::RewardsModule;
 use metabonding::*;
 use metabonding::{claim::ClaimModule, project::ProjectModule};
@@ -12,11 +14,11 @@ use multiversx_sc::{
     types::{Address, MultiValueEncoded},
 };
 use multiversx_sc_modules::pause::PauseModule;
+use multiversx_sc_scenario::testing_framework::{
+    BlockchainStateWrapper, ContractObjWrapper, TxResult,
+};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
-    whitebox::TxResult,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
-    DebugApi,
+    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint, DebugApi,
 };
 
 // associated private key - used for generating the signatures (please don't steal my funds)

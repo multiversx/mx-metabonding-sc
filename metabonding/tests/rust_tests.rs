@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 pub mod metabonding_setup;
 
 use metabonding_setup::*;
@@ -160,7 +161,7 @@ fn claim_rewards_test() {
     // try claim wrong user delegation supply
     mb_setup
         .call_claim_rewards(&first_user_addr, 1, 30_000, 0, &sig_first_user_week_1)
-        .assert_user_error("Invalid signature");
+        .assert_error(10, "invalid signature");
 
     // try claim wrong week
     mb_setup

@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 pub mod metabonding_setup;
 
 use std::iter::FromIterator;

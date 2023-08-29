@@ -7,10 +7,6 @@ use crate::{
 };
 use multiversx_sc::api::ED25519_SIGNATURE_BYTE_LEN;
 
-// week + caller + user_delegation_amount + user_lkmex_staked_amount
-// 4 + 32 + (4 + 32) + (4 + 32) = 108, with some extra for high BigUint values
-const MAX_DATA_LEN: usize = 120;
-
 pub type Signature<M> = ManagedByteArray<M, ED25519_SIGNATURE_BYTE_LEN>;
 
 pub static ALREADY_CLAIMED_ERR_MSG: &[u8] = b"Already claimed rewards for this week";
@@ -26,12 +22,11 @@ pub trait ValidationModule: crate::common_storage::CommonStorageModule {
         let _ = claim_arg.user_lkmex_staked_amount.dep_encode(&mut data);
 
         let signer = self.signer().get();
-        let valid_signature = self.crypto().verify_ed25519_legacy_managed::<MAX_DATA_LEN>(
-            signer.as_managed_byte_array(),
+        self.crypto().verify_ed25519(
+            signer.as_managed_buffer(),
             &data,
-            &claim_arg.signature,
+            claim_arg.signature.as_managed_buffer(),
         );
-        require!(valid_signature, "Invalid signature");
     }
 
     fn validate_claim_args(
