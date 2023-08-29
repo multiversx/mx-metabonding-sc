@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-use elrond_wasm_modules::transfer_role_proxy::PaymentsVec;
+use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::{
     claim_progress::{ClaimProgressGraceWeeks, ClaimProgressTracker, ShiftingClaimProgress},
@@ -28,9 +28,9 @@ pub struct SignedClaimArgs<M: ManagedTypeApi> {
     pub signature: Signature<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ClaimModule:
-    elrond_wasm_modules::pause::PauseModule
+    multiversx_sc_modules::pause::PauseModule
     + crate::project::ProjectModule
     + crate::access_control::AccessControlModule
     + crate::common_storage::CommonStorageModule

@@ -1,7 +1,8 @@
 pub mod metabonding_setup;
 
-use elrond_wasm::types::{ManagedVec, MultiValueEncoded};
-use elrond_wasm_debug::{managed_address, rust_biguint};
+use multiversx_sc::types::{ManagedVec, MultiValueEncoded};
+use multiversx_sc_scenario::{managed_address, rust_biguint};
+
 use metabonding::{
     claim_progress::{ClaimProgressGraceWeeks, ClaimProgressModule, ShiftingClaimProgress},
     legacy_storage_cleanup::LegacyStorageCleanupModule,

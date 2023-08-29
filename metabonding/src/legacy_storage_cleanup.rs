@@ -1,8 +1,8 @@
 use crate::rewards::FIRST_WEEK;
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LegacyStorageCleanupModule:
     crate::project::ProjectModule
     + crate::common_storage::CommonStorageModule

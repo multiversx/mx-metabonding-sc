@@ -1,8 +1,8 @@
 pub mod metabonding_setup;
 
-use elrond_wasm_debug::rust_biguint;
 use metabonding::claim_progress::ClaimProgressModule;
 use metabonding_setup::*;
+use multiversx_sc_scenario::rust_biguint;
 
 #[test]
 fn init_test() {

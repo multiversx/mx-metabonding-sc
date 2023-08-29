@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::{
     common_storage::{EPOCHS_IN_WEEK, MAX_PERCENTAGE},
@@ -49,7 +49,7 @@ impl<M: ManagedTypeApi> Project<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ProjectModule: crate::common_storage::CommonStorageModule {
     /// Adds a new project. Arguments:
     /// - project_id: a unique ID of maximum 10 bytes

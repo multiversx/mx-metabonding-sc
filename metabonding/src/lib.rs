@@ -2,7 +2,7 @@
 
 use rewards::Week;
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub mod access_control;
 pub mod claim;
@@ -14,11 +14,9 @@ pub mod project;
 pub mod rewards;
 pub mod validation;
 
-/// Source code for the pause module:
-/// https://github.com/ElrondNetwork/elrond-wasm-rs/blob/master/elrond-wasm-modules/src/pause.rs
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Metabonding:
-    elrond_wasm_modules::pause::PauseModule
+    multiversx_sc_modules::pause::PauseModule
     + project::ProjectModule
     + rewards::RewardsModule
     + claim::ClaimModule

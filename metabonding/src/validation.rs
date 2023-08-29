@@ -1,11 +1,11 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::{
     claim::{ClaimArgArray, SignedClaimArgArray, SignedClaimArgs},
     claim_progress::{ClaimProgressGraceWeeks, ClaimProgressTracker, ShiftingClaimProgress},
     rewards::{Week, FIRST_WEEK},
 };
-use elrond_wasm::api::ED25519_SIGNATURE_BYTE_LEN;
+use multiversx_sc::api::ED25519_SIGNATURE_BYTE_LEN;
 
 // week + caller + user_delegation_amount + user_lkmex_staked_amount
 // 4 + 32 + (4 + 32) + (4 + 32) = 108, with some extra for high BigUint values
@@ -16,7 +16,7 @@ pub type Signature<M> = ManagedByteArray<M, ED25519_SIGNATURE_BYTE_LEN>;
 pub static ALREADY_CLAIMED_ERR_MSG: &[u8] = b"Already claimed rewards for this week";
 pub static INVALID_WEEK_NR_ERR_MSG: &[u8] = b"Invalid week number";
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ValidationModule: crate::common_storage::CommonStorageModule {
     fn verify_signature(
         &self,

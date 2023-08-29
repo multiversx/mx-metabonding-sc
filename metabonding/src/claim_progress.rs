@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::{
     project::PROJECT_EXPIRATION_WEEKS,
@@ -135,7 +135,7 @@ impl ClaimProgressTracker for ShiftingClaimProgress {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ClaimProgressModule {
     fn get_claimable_weeks(
         &self,
