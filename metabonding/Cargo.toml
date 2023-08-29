@@ -15,7 +15,7 @@ version = "=0.39.4"
 
 [dependencies.sc_whitelist_module]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "fdb1fb4"
+rev = "4941cae"
 
 [dev-dependencies]
 num-bigint = "0.4.2"

@@ -1,8 +1,8 @@
 multiversx_sc::imports!();
 
 use crate::{
-    claim::{ClaimArgArray, ClaimArgsWrapper},
-    claim_progress::{ClaimProgressTracker, ShiftingClaimProgress},
+    claim::{ClaimArgArray, ClaimArgsWrapper, NO_CLAIM_ARGS_ERR_MSG},
+    claim_progress::{ClaimFlag, ClaimProgressTracker, ShiftingClaimProgress},
     rewards::{Week, FIRST_WEEK},
 };
 use multiversx_sc::api::ED25519_SIGNATURE_BYTE_LEN;
@@ -38,16 +38,26 @@ pub trait ValidationModule: crate::common_storage::CommonStorageModule {
         &self,
         caller: &ManagedAddress,
         claim_args: &ClaimArgArray<Self::Api>,
-        shifting_progress: &ShiftingClaimProgress,
+        claim_progress: &ShiftingClaimProgress<Self::Api>,
         last_checkpoint_week: Week,
     ) {
+        self.check_no_duplicate_claim_args(claim_args);
+
         for claim_arg in claim_args {
-            self.validate_single_claim_arg(
-                caller,
-                claim_arg,
-                shifting_progress,
-                last_checkpoint_week,
-            );
+            self.validate_single_claim_arg(caller, claim_arg, claim_progress, last_checkpoint_week);
+        }
+    }
+
+    fn check_no_duplicate_claim_args(&self, claim_args: &ClaimArgArray<Self::Api>) {
+        let mut iterator = claim_args.iter();
+        let opt_prev_elem = iterator.next();
+        require!(opt_prev_elem.is_some(), NO_CLAIM_ARGS_ERR_MSG);
+
+        let mut prev_elem = unsafe { opt_prev_elem.unwrap_unchecked() };
+        for current_elem in iterator {
+            require!(prev_elem.week != current_elem.week, "Duplicate claim args");
+
+            prev_elem = current_elem;
         }
     }
 
@@ -55,7 +65,7 @@ pub trait ValidationModule: crate::common_storage::CommonStorageModule {
         &self,
         caller: &ManagedAddress,
         claim_arg: &ClaimArgsWrapper<Self::Api>,
-        claim_progress: &ShiftingClaimProgress,
+        claim_progress: &ShiftingClaimProgress<Self::Api>,
         last_checkpoint_week: Week,
     ) {
         let claim_week = claim_arg.week;
@@ -67,10 +77,11 @@ pub trait ValidationModule: crate::common_storage::CommonStorageModule {
             claim_progress.is_week_valid(claim_week),
             INVALID_WEEK_NR_ERR_MSG
         );
-        require!(
-            claim_progress.can_claim_for_week(claim_week),
-            ALREADY_CLAIMED_ERR_MSG
-        );
+
+        let claim_flag = claim_progress.get_claim_flags_for_week(claim_week);
+        if let ClaimFlag::Claimed { unclaimed_projects } = claim_flag {
+            require!(!unclaimed_projects.is_empty(), ALREADY_CLAIMED_ERR_MSG);
+        }
 
         self.verify_signature(caller, claim_arg);
     }

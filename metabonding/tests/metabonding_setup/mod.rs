@@ -5,6 +5,7 @@ use metabonding::{
     common_storage::{CommonStorageModule, EPOCHS_IN_WEEK},
     rewards::Week,
 };
+use multiversx_sc::types::ManagedVec;
 use multiversx_sc::{
     api::ED25519_SIGNATURE_BYTE_LEN,
     codec::multi_types::OptionalValue,
@@ -256,7 +257,7 @@ where
 
         self.b_mock
             .execute_query(&self.mb_wrapper, |sc| {
-                let result = sc.get_all_project_ids();
+                let result = sc.get_all_project_ids_view();
 
                 for id in &result.to_vec() {
                     all_ids.push(id.to_boxed_bytes().as_slice().to_vec());
@@ -359,6 +360,37 @@ where
             })
     }
 
+    pub fn call_claim_partial_rewards(
+        &mut self,
+        caller: &Address,
+        week: Week,
+        user_delegation_supply: u64,
+        user_lkmex_staked: u64,
+        signature: &[u8; ED25519_SIGNATURE_BYTE_LEN],
+        projects_to_claim: &[&[u8]],
+    ) -> TxResult {
+        self.b_mock
+            .execute_tx(caller, &self.mb_wrapper, &rust_biguint!(0), |sc| {
+                let mut args = MultiValueEncoded::new();
+                args.push(
+                    (
+                        week,
+                        managed_biguint!(user_delegation_supply),
+                        managed_biguint!(user_lkmex_staked),
+                        signature.into(),
+                    )
+                        .into(),
+                );
+
+                let mut ptc = ManagedVec::new();
+                for proj_id in projects_to_claim {
+                    ptc.push(managed_buffer!(*proj_id));
+                }
+
+                let _ = sc.claim_partial_rewards(managed_address!(caller), ptc, args);
+            })
+    }
+
     pub fn call_claim_rewards_multiple(
         &mut self,
         caller: &Address,
@@ -392,7 +424,8 @@ where
             .execute_query(&self.mb_wrapper, |sc| {
                 let result = sc.get_user_claimable_weeks(managed_address!(user_addr));
 
-                for week in &result.to_vec() {
+                for multi_value in result {
+                    let (week, _) = multi_value.into_tuple();
                     weeks.push(week);
                 }
             })

@@ -1,19 +1,29 @@
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::{
-    claim_progress::{ClaimProgressTracker, ShiftingClaimProgress},
-    project::{Project, ProjectId},
+    claim_progress::{ClaimFlag, ClaimProgressTracker, ShiftingClaimProgress},
+    project::{ProjIdsVec, Project, ProjectId},
     rewards::{RewardsCheckpoint, Week},
-    validation::{Signature, ALREADY_CLAIMED_ERR_MSG},
+    validation::Signature,
 };
+
+pub static NO_CLAIM_ARGS_ERR_MSG: &[u8] = b"No claim args";
 
 const MAX_CLAIM_ARG_PAIRS: usize = 5;
 const CLAIM_NR_ARGS_PER_PAIR: usize = 4;
 
 pub type ClaimArgPair<M> = MultiValue4<Week, BigUint<M>, BigUint<M>, Signature<M>>;
 pub type ClaimArgArray<M> = ArrayVec<ClaimArgsWrapper<M>, MAX_CLAIM_ARG_PAIRS>;
+pub type FlagsArray<M> = ArrayVec<ClaimFlag<M>, MAX_CLAIM_ARG_PAIRS>;
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub enum ClaimableTokens<M: ManagedTypeApi> {
+    All,
+    Partial { unclaimed_projects: ProjIdsVec<M> },
+}
 
 pub struct ClaimArgsWrapper<M: ManagedTypeApi> {
     pub week: Week,
@@ -50,7 +60,39 @@ pub trait ClaimModule:
         &self,
         original_caller: ManagedAddress,
         raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
-    ) -> ManagedVec<EsdtTokenPayment> {
+    ) -> PaymentsVec<Self::Api> {
+        let all_projects = self.get_all_project_ids();
+        self.claim_common(
+            original_caller,
+            &all_projects,
+            &all_projects,
+            raw_claim_args,
+        )
+    }
+
+    #[endpoint(claimPartialRewards)]
+    fn claim_partial_rewards(
+        &self,
+        original_caller: ManagedAddress,
+        projects_to_claim: ProjIdsVec<Self::Api>,
+        raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
+    ) -> PaymentsVec<Self::Api> {
+        let all_projects = self.get_all_project_ids();
+        self.claim_common(
+            original_caller,
+            &projects_to_claim,
+            &all_projects,
+            raw_claim_args,
+        )
+    }
+
+    fn claim_common(
+        &self,
+        original_caller: ManagedAddress,
+        projects_to_claim: &ProjIdsVec<Self::Api>,
+        all_projects: &ProjIdsVec<Self::Api>,
+        raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
+    ) -> PaymentsVec<Self::Api> {
         require!(self.not_paused(), "May not claim rewards while paused");
 
         let caller = self.blockchain().get_caller();
@@ -62,7 +104,8 @@ pub trait ClaimModule:
         let mut claim_progress = self.get_claim_progress(&original_caller, current_week);
 
         let last_checkpoint_week = self.get_last_checkpoint_week();
-        let args = self.collect_claim_args(raw_claim_args);
+        let mut args = self.collect_claim_args(raw_claim_args);
+        self.sort_claim_args(&mut args);
         self.validate_claim_args(
             &original_caller,
             &args,
@@ -70,7 +113,13 @@ pub trait ClaimModule:
             last_checkpoint_week,
         );
 
-        let rewards = self.claim_all_project_rewards(current_week, &args, &mut claim_progress);
+        let rewards = self.claim_all_project_rewards(
+            current_week,
+            &args,
+            &mut claim_progress,
+            projects_to_claim,
+            all_projects,
+        );
         self.claim_progress(&original_caller).set(claim_progress);
 
         if !rewards.is_empty() {
@@ -80,10 +129,15 @@ pub trait ClaimModule:
         rewards
     }
 
+    fn sort_claim_args(&self, claim_args: &mut ClaimArgArray<Self::Api>) {
+        claim_args.sort_unstable_by(|a, b| a.week.cmp(&b.week));
+    }
+
     fn collect_claim_args(
         &self,
         raw_claim_args: MultiValueEncoded<ClaimArgPair<Self::Api>>,
     ) -> ClaimArgArray<Self::Api> {
+        require!(!raw_claim_args.is_empty(), NO_CLAIM_ARGS_ERR_MSG);
         require!(
             raw_claim_args.raw_len() / CLAIM_NR_ARGS_PER_PAIR <= MAX_CLAIM_ARG_PAIRS,
             "Too many arguments"
@@ -117,24 +171,31 @@ pub trait ClaimModule:
         &self,
         current_week: Week,
         claim_args: &ClaimArgArray<Self::Api>,
-        claim_progress: &mut ShiftingClaimProgress,
+        claim_progress: &mut ShiftingClaimProgress<Self::Api>,
+        projects_to_claim: &ProjIdsVec<Self::Api>,
+        all_projects: &ProjIdsVec<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
-        let mut all_rewards = PaymentsVec::new();
-        for (id, project) in self.projects().iter() {
-            let opt_rewards = self.claim_for_project(current_week, &id, project, claim_args);
-            if let Some(rewards) = opt_rewards {
-                all_rewards.push(rewards);
+        for arg in claim_args {
+            let flags_for_week = claim_progress.get_claim_flags_for_week(arg.week);
+            if matches!(flags_for_week, ClaimFlag::NotClaimed) {
+                claim_progress.set_claimed_for_week(arg.week, all_projects.clone())
             }
         }
 
-        for arg in claim_args {
-            // have to check again to prevent duplicate claims
-            require!(
-                claim_progress.can_claim_for_week(arg.week),
-                ALREADY_CLAIMED_ERR_MSG
-            );
+        let mut all_rewards = PaymentsVec::new();
+        let projects_mapper = self.projects();
+        for id in projects_to_claim {
+            let opt_project = projects_mapper.get(&id);
+            if opt_project.is_none() {
+                continue;
+            }
 
-            claim_progress.set_claimed_for_week(arg.week);
+            let project = unsafe { opt_project.unwrap_unchecked() };
+            let opt_rewards =
+                self.claim_for_project(current_week, &id, project, claim_args, claim_progress);
+            if let Some(rewards) = opt_rewards {
+                all_rewards.push(rewards);
+            }
         }
 
         all_rewards
@@ -146,14 +207,25 @@ pub trait ClaimModule:
         project_id: &ProjectId<Self::Api>,
         project: Project<Self::Api>,
         claim_args: &ClaimArgArray<Self::Api>,
+        claim_progress: &mut ShiftingClaimProgress<Self::Api>,
     ) -> Option<EsdtTokenPayment> {
         let mut rewards_for_project = BigUint::zero();
         for arg in claim_args {
+            let flags_mut = claim_progress.get_mut_claim_flags_for_week(arg.week);
+            let unclaimed_proj_ref = flags_mut.get_mut_unclaimed_proj();
+            let opt_index = unclaimed_proj_ref.find(project_id);
+            if opt_index.is_none() {
+                continue;
+            }
+
             let opt_weekly_reward =
                 self.get_weekly_reward_for_project(project_id, &project, current_week, arg);
             if let Some(weekly_reward) = opt_weekly_reward {
                 rewards_for_project += weekly_reward;
             }
+
+            let proj_index = unsafe { opt_index.unwrap_unchecked() };
+            unclaimed_proj_ref.remove(proj_index);
         }
 
         if rewards_for_project == 0 {
@@ -168,27 +240,37 @@ pub trait ClaimModule:
     }
 
     #[view(getUserClaimableWeeks)]
-    fn get_user_claimable_weeks(&self, user: ManagedAddress) -> MultiValueEncoded<Week> {
+    fn get_user_claimable_weeks(
+        &self,
+        user: ManagedAddress,
+    ) -> MultiValueEncoded<MultiValue2<Week, ClaimableTokens<Self::Api>>> {
         let current_week = self.get_current_week();
         let last_checkpoint_week = self.get_last_checkpoint_week();
         if current_week == 0 || last_checkpoint_week == 0 {
             return MultiValueEncoded::new();
         }
 
-        self.get_claimable_shifting_weeks(&user, current_week)
-            .into()
-    }
-
-    fn get_claimable_shifting_weeks(
-        &self,
-        user: &ManagedAddress,
-        current_week: Week,
-    ) -> ManagedVec<Week> {
-        let claim_progress = self.get_claim_progress(user, current_week);
+        let claim_progress = self.get_claim_progress(&user, current_week);
         let start_week =
-            ShiftingClaimProgress::get_first_index_week_for_new_current_week(current_week);
+            ShiftingClaimProgress::<Self::Api>::get_first_index_week_for_new_current_week(
+                current_week,
+            );
         let last_checkpoint_week = self.get_last_checkpoint_week();
 
-        self.get_claimable_weeks(&claim_progress, start_week, last_checkpoint_week)
+        let mut claimable_weeks = MultiValueEncoded::new();
+        for week in start_week..=last_checkpoint_week {
+            let claim_flags = claim_progress.get_claim_flags_for_week(week);
+            match claim_flags {
+                ClaimFlag::NotClaimed => claimable_weeks.push((week, ClaimableTokens::All).into()),
+                ClaimFlag::Claimed { unclaimed_projects } => {
+                    let partial = ClaimableTokens::Partial {
+                        unclaimed_projects: unclaimed_projects.clone(),
+                    };
+                    claimable_weeks.push((week, partial).into());
+                }
+            };
+        }
+
+        claimable_weeks
     }
 }

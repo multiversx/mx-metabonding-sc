@@ -1,10 +1,10 @@
 pub mod metabonding_setup;
 
-use multiversx_sc::types::MultiValueEncoded;
+use multiversx_sc::types::{ManagedVec, MultiValueEncoded};
 use multiversx_sc_scenario::{managed_address, rust_biguint};
 
 use metabonding::{
-    claim_progress::{ClaimProgressModule, ShiftingClaimProgress},
+    claim_progress::{ClaimFlag, ClaimProgressModule, ShiftingClaimProgress},
     legacy_storage_cleanup::LegacyStorageCleanupModule,
 };
 use metabonding_setup::*;
@@ -28,17 +28,40 @@ fn claim_progress_migration_test() {
                 sc.legacy_rewards_claimed_flag(&managed_address!(&first_user), 5)
                     .set(true);
 
+                let not_claimed = ClaimFlag::NotClaimed;
+                let claimed = ClaimFlag::Claimed {
+                    unclaimed_projects: ManagedVec::new(),
+                };
+
                 // check shifting progress
                 let shifting_progress = sc.get_claim_progress(&managed_address!(&first_user), 5);
-                let expected_shifting_progress =
-                    ShiftingClaimProgress::new([true, true, false, false, true], 5);
+                let expected_shifting_progress = ShiftingClaimProgress::new(
+                    [
+                        claimed.clone(),
+                        claimed.clone(),
+                        not_claimed.clone(),
+                        not_claimed.clone(),
+                        claimed.clone(),
+                    ]
+                    .into(),
+                    5,
+                );
                 assert_eq!(shifting_progress, expected_shifting_progress);
 
                 // check shifted by 1
                 let shifting_progress_after_1 =
                     sc.get_claim_progress(&managed_address!(&first_user), 6);
-                let expected_shifting_progress_after_1 =
-                    ShiftingClaimProgress::new([true, false, false, true, false], 6);
+                let expected_shifting_progress_after_1 = ShiftingClaimProgress::new(
+                    [
+                        claimed.clone(),
+                        not_claimed.clone(),
+                        not_claimed.clone(),
+                        claimed,
+                        not_claimed,
+                    ]
+                    .into(),
+                    6,
+                );
                 assert_eq!(
                     shifting_progress_after_1,
                     expected_shifting_progress_after_1
@@ -80,10 +103,24 @@ fn claim_progress_cleanup_test() {
                 args.push(managed_address!(&first_user));
                 sc.clear_old_storage_flags(args);
 
+                let not_claimed = ClaimFlag::NotClaimed;
+                let claimed = ClaimFlag::Claimed {
+                    unclaimed_projects: ManagedVec::new(),
+                };
+
                 // check shifting progress
                 let shifting_progress = sc.claim_progress(&managed_address!(&first_user)).get();
-                let expected_shifting_progress =
-                    ShiftingClaimProgress::new([true, true, false, false, true], 5);
+                let expected_shifting_progress = ShiftingClaimProgress::new(
+                    [
+                        claimed.clone(),
+                        claimed.clone(),
+                        not_claimed.clone(),
+                        not_claimed,
+                        claimed,
+                    ]
+                    .into(),
+                    5,
+                );
                 assert_eq!(shifting_progress, expected_shifting_progress);
 
                 assert!(!sc
