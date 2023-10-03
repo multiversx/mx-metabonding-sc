@@ -8,14 +8,14 @@ publish = false
 [lib]
 path = "src/lib.rs"
 [dependencies.multiversx-sc]
-version = "=0.43.2"
+version = "=0.43.3"
 
 [dependencies.multiversx-sc-modules]
-version = "=0.43.2"
+version = "=0.43.3"
 
 [dependencies.sc_whitelist_module]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "7f25a72"
+rev = "a94a332"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -24,4 +24,4 @@ hex = "0.4"
 hex-literal = "0.3.4"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.43.2"
+version = "=0.43.3"
