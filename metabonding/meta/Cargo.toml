@@ -10,4 +10,4 @@ authors = ["Dorin Marian Iancu, dorin.iancu@multiversx.com"]
 path = ".."
 
 [dependencies.multiversx-sc-meta]
-version = "0.43.2"
+version = "=0.43.3"
