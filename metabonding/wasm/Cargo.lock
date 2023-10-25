@@ -40,7 +40,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "common_errors"
 version = "0.0.0"
-source = "git+https://github.com/multiversx/mx-exchange-sc?rev=a94a332#a94a3329c988a6f002e43878474fa6934afc99cf"
+source = "git+https://github.com/multiversx/mx-exchange-sc?rev=1b70768#1b70768f231dc0ea77f7b2dfd78b08070d9e4df5"
 dependencies = [
  "multiversx-sc",
 ]
@@ -211,7 +211,7 @@ dependencies = [
 [[package]]
 name = "sc_whitelist_module"
 version = "0.0.0"
-source = "git+https://github.com/multiversx/mx-exchange-sc?rev=a94a332#a94a3329c988a6f002e43878474fa6934afc99cf"
+source = "git+https://github.com/multiversx/mx-exchange-sc?rev=1b70768#1b70768f231dc0ea77f7b2dfd78b08070d9e4df5"
 dependencies = [
  "common_errors",
  "multiversx-sc",
