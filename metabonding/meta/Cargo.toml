@@ -6,8 +6,9 @@ publish = false
 authors = ["Dorin Marian Iancu, dorin.iancu@multiversx.com"]
 
 [dev-dependencies]
+
 [dependencies.metabonding]
 path = ".."
 
 [dependencies.multiversx-sc-meta]
-version = "=0.43.3"
+version = "=0.45.1"
