@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-100-gc50eb0d"
+            "gitVersion": "v1.0.2-101-g12bb853"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -21,16 +21,11 @@
     "constructor": {
         "docs": [
             "Arguments:",
-            "min_weekly_rewards_value: The minimum value of weekly rewards, in USDC, that a project must deposit",
             "min_energy_per_reward_dollar: Scaled to PRECISION const.",
             "alpha: Percentage, scaled to MAX_PERCENTAGE const.",
             "signer: Public key of the signer, used to verify user claims"
         ],
         "inputs": [
-            {
-                "name": "_min_weekly_rewards_value",
-                "type": "BigUint"
-            },
             {
                 "name": "_min_energy_per_reward_dollar",
                 "type": "BigUint"
@@ -81,7 +76,7 @@
             ],
             "outputs": [
                 {
-                    "type": "u64"
+                    "type": "u32"
                 }
             ]
         },
@@ -92,11 +87,95 @@
             "inputs": [
                 {
                     "name": "project_id",
-                    "type": "u64"
+                    "type": "u32"
                 },
                 {
                     "name": "new_owner",
                     "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setMinRewardsPeriod",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "nr_weeks",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setMinWeeklyRewardsValue",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "value",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "depositInitialRewards",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "start_week",
+                    "type": "u32"
+                },
+                {
+                    "name": "end_week",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "depositAdditionalRewards",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "start_week",
+                    "type": "u32"
+                },
+                {
+                    "name": "end_week",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "updateRewards",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "_project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "_max_nr_weeks",
+                    "type": "optional<u32>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
@@ -112,6 +191,29 @@
                 }
             ],
             "outputs": []
+        },
+        {
+            "docs": [
+                "Week starts from 1"
+            ],
+            "name": "getCurrentWeek",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getFirstWeekStartEpoch",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
         }
     ],
     "esdtAttributes": [],

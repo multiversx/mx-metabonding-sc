@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-pub type ProjectId = u64;
+pub type ProjectId = u32;
 
 #[multiversx_sc::module]
 pub trait ProjectsModule {
@@ -24,6 +24,14 @@ pub trait ProjectsModule {
         self.last_project_id().set(new_project_id);
 
         new_project_id
+    }
+
+    fn require_is_project_owner(&self, address: &ManagedAddress, project_id: ProjectId) {
+        let project_owner = self.project_owner(project_id).get();
+        require!(
+            address == &project_owner,
+            "Only project owner may call this endpoint"
+        );
     }
 
     #[storage_mapper("lastProjectId")]
