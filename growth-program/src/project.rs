@@ -20,8 +20,8 @@ pub trait ProjectsModule {
     }
 
     fn get_and_save_new_project_id(&self) -> ProjectId {
-        let new_project_id = self.last_project_id().get();
-        self.last_project_id().set(new_project_id + 1);
+        let new_project_id = self.last_project_id().get() + 1;
+        self.last_project_id().set(new_project_id);
 
         new_project_id
     }
