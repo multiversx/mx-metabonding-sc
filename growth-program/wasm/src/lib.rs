@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           11
+// Endpoints:                           13
 // Async Callback (empty):               1
-// Total number of exported functions:  13
+// Total number of exported functions:  15
 
 #![no_std]
 #![allow(internal_features)]
@@ -27,6 +27,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         setMinWeeklyRewardsValue => set_min_weekly_rewards_value
         depositInitialRewards => deposit_initial_rewards
         depositAdditionalRewards => deposit_additional_rewards
+        ownerWithdrawRewards => owner_withdraw_rewards
+        finishProgram => finish_program
         updateRewards => update_rewards_endpoint
         changeSigner => change_signer
         getCurrentWeek => get_current_week

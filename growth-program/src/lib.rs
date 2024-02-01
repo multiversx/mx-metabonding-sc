@@ -21,6 +21,8 @@ pub const USDC_DECIMALS: u32 = 6;
 pub trait GrowthProgram:
     project::ProjectsModule
     + rewards::deposit::DepositRewardsModule
+    + rewards::withdraw::WithdrawRewardsModule
+    + rewards::common_rewards::CommonRewardsModule
     + price_query::PriceQueryModule
     + validation::ValidationModule
     + week_timekeeping::WeekTimekeepingModule
