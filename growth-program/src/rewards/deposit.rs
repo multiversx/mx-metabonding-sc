@@ -122,7 +122,7 @@ pub trait DepositRewardsModule:
         }
 
         let surplus_amount = amount - &rewards_per_week * week_diff as u32;
-        let surplus_payment = EsdtTokenPayment::new(token_id.clone(), 0, surplus_amount);
+        let surplus_payment = EsdtTokenPayment::new(token_id, 0, surplus_amount);
         self.send()
             .direct_non_zero_esdt_payment(&caller, &surplus_payment);
 
