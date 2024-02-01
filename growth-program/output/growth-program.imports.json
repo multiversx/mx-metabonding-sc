@@ -1,5 +1,19 @@
 [
+  "bigIntGetUnsignedArgument",
   "checkNoPayment",
   "getNumArguments",
-  "signalError"
+  "isSmartContract",
+  "mBufferAppendBytes",
+  "mBufferEq",
+  "mBufferGetArgument",
+  "mBufferGetByteSlice",
+  "mBufferGetBytes",
+  "mBufferGetLength",
+  "mBufferSetBytes",
+  "mBufferStorageStore",
+  "managedCaller",
+  "managedOwnerAddress",
+  "managedSignalError",
+  "signalError",
+  "validateTokenIdentifier"
 ]

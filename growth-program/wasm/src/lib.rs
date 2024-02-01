@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            0
+// Endpoints:                            2
 // Async Callback (empty):               1
-// Total number of exported functions:   2
+// Total number of exported functions:   4
 
 #![no_std]
 #![allow(internal_features)]
@@ -20,6 +20,8 @@ multiversx_sc_wasm_adapter::endpoints! {
     growth_program
     (
         init => init
+        upgrade => upgrade
+        changeSigner => change_signer
     )
 }
 
