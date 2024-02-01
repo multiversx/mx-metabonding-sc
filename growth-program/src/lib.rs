@@ -14,7 +14,7 @@ pub const WEEK_IN_SECONDS: u64 = 7 * 24 * 60 * 60;
 pub const PRECISION: u64 = 1_000_000_000_000_000_000;
 
 pub const DEFAULT_MIN_REWARDS_PERIOD: Week = 26;
-pub const DEFAULT_MIN_WEEKLY_REWARDS_USDC_VALUE: u64 = 1_000;
+pub const DEFAULT_MIN_WEEKLY_REWARDS_DOLLARS_VALUE: u64 = 1_000;
 pub const USDC_DECIMALS: u32 = 6;
 
 #[multiversx_sc::contract]
@@ -55,8 +55,9 @@ pub trait GrowthProgram:
 
         self.min_rewards_period().set(DEFAULT_MIN_REWARDS_PERIOD);
 
-        let default_min_weekly_rewards_value = BigUint::from(DEFAULT_MIN_WEEKLY_REWARDS_USDC_VALUE)
-            * BigUint::from(10u32).pow(USDC_DECIMALS);
+        let default_min_weekly_rewards_value =
+            BigUint::from(DEFAULT_MIN_WEEKLY_REWARDS_DOLLARS_VALUE)
+                * BigUint::from(10u32).pow(USDC_DECIMALS);
         self.min_weekly_rewards_value()
             .set(default_min_weekly_rewards_value);
 
