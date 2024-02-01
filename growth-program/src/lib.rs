@@ -3,6 +3,7 @@
 multiversx_sc::imports!();
 
 pub mod price_query;
+pub mod project;
 pub mod validation;
 
 pub const MAX_PERCENTAGE: u32 = 100_000;
@@ -11,7 +12,10 @@ pub const PRECISION: u64 = 1_000_000_000_000_000_000;
 
 #[multiversx_sc::contract]
 pub trait GrowthProgram:
-    price_query::PriceQueryModule + validation::ValidationModule + utils::UtilsModule
+    project::ProjectsModule
+    + price_query::PriceQueryModule
+    + validation::ValidationModule
+    + utils::UtilsModule
 {
     /// Arguments:
     /// min_weekly_rewards_value: The minimum value of weekly rewards, in USDC, that a project must deposit
