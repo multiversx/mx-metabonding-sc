@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-98-g6873ade"
+            "gitVersion": "v1.0.2-99-g0481e58"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -67,6 +67,38 @@
             "name": "upgrade",
             "mutability": "mutable",
             "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "addProject",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_owner",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "setProjectOwner",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u64"
+                },
+                {
+                    "name": "new_owner",
+                    "type": "Address"
+                }
+            ],
             "outputs": []
         },
         {

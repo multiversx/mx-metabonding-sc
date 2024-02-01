@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            2
+// Endpoints:                            4
 // Async Callback (empty):               1
-// Total number of exported functions:   4
+// Total number of exported functions:   6
 
 #![no_std]
 #![allow(internal_features)]
@@ -21,6 +21,8 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
+        addProject => add_project
+        setProjectOwner => set_project_owner
         changeSigner => change_signer
     )
 }

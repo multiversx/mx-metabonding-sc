@@ -10,10 +10,13 @@
   "mBufferGetBytes",
   "mBufferGetLength",
   "mBufferSetBytes",
+  "mBufferStorageLoad",
   "mBufferStorageStore",
   "managedCaller",
   "managedOwnerAddress",
   "managedSignalError",
   "signalError",
+  "smallIntFinishUnsigned",
+  "smallIntGetUnsignedArgument",
   "validateTokenIdentifier"
 ]
