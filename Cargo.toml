@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "growth-program",
+  "growth-program/meta",
   "metabonding",
   "metabonding/meta",
 ]

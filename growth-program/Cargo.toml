@@ -1,0 +1,30 @@
+[package]
+name = "growth-program"
+version = "0.0.0"
+authors = ["you"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "=0.46.1"
+
+[dependencies.utils]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "0c7f45e"
+
+[dependencies.router]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "0c7f45e"
+
+[dependencies.pair]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "0c7f45e"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.46.1"
