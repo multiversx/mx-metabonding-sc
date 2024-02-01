@@ -121,6 +121,7 @@ dependencies = [
  "pair",
  "router",
  "utils",
+ "week-timekeeping",
 ]
 
 [[package]]
