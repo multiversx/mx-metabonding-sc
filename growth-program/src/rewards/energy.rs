@@ -87,12 +87,6 @@ pub trait EnergyModule:
         }
 
         let min_energy_per_reward_dollar = self.min_energy_per_reward_dollar().get();
-        if current_week == FIRST_WEEK {
-            mapper.set(&min_energy_per_reward_dollar);
-
-            return min_energy_per_reward_dollar;
-        }
-
         let previous_week = current_week - 1;
         let interested_energy = self
             .interested_energy_for_week(project_id, previous_week)

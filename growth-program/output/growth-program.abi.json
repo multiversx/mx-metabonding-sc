@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-113-g45ed268"
+            "gitVersion": "v1.0.2-114-g98e03c2"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -138,6 +138,10 @@
                 {
                     "name": "end_week",
                     "type": "u32"
+                },
+                {
+                    "name": "initial_energy_per_rew_dollar",
+                    "type": "BigUint"
                 }
             ],
             "outputs": []
