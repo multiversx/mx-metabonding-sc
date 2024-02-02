@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           17
+// Endpoints:                           20
 // Async Callback (empty):               1
-// Total number of exported functions:  19
+// Total number of exported functions:  22
 
 #![no_std]
 #![allow(internal_features)]
@@ -33,10 +33,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         setEnergyPerRewardDollarForWeek => set_energy_per_reward_dollar_for_week
         setAlpha => set_alpha
         setTotalEnergyForWeek => set_total_energy_for_week
+        claimRewards => claim_rewards
         updateRewards => update_rewards_endpoint
         changeSigner => change_signer
         getCurrentWeek => get_current_week
         getFirstWeekStartEpoch => first_week_start_epoch
+        setEnergyFactoryAddress => set_energy_factory_address
+        getEnergyFactoryAddress => energy_factory_address
     )
 }
 

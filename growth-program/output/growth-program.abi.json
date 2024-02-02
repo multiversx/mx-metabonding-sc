@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-115-g7b584ba"
+            "gitVersion": "v1.0.2-116-gd4cacf5"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -44,6 +44,14 @@
             },
             {
                 "name": "safe_price_pair",
+                "type": "Address"
+            },
+            {
+                "name": "energy_factory_address",
+                "type": "Address"
+            },
+            {
+                "name": "simple_lock_address",
                 "type": "Address"
             },
             {
@@ -260,6 +268,34 @@
             "outputs": []
         },
         {
+            "name": "claimRewards",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "lock_option",
+                    "type": "LockOption"
+                },
+                {
+                    "name": "min_rewards",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "signature",
+                    "type": "array64<u8>"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<EsdtTokenPayment>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
             "name": "updateRewards",
             "mutability": "mutable",
             "inputs": [
@@ -309,9 +345,66 @@
                     "type": "u64"
                 }
             ]
+        },
+        {
+            "name": "setEnergyFactoryAddress",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "sc_address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getEnergyFactoryAddress",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
         }
     ],
     "esdtAttributes": [],
     "hasCallback": false,
-    "types": {}
+    "types": {
+        "EsdtTokenPayment": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "token_identifier",
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "name": "token_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        "LockOption": {
+            "type": "enum",
+            "variants": [
+                {
+                    "name": "None",
+                    "discriminant": 0
+                },
+                {
+                    "name": "OneWeek",
+                    "discriminant": 1
+                },
+                {
+                    "name": "TwoWeeks",
+                    "discriminant": 2
+                }
+            ]
+        }
+    }
 }
