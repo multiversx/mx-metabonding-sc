@@ -9,6 +9,7 @@ multiversx_sc::derive_imports!();
 pub trait EnergyModule:
     super::common_rewards::CommonRewardsModule
     + crate::price_query::PriceQueryModule
+    + crate::project::ProjectsModule
     + week_timekeeping::WeekTimekeepingModule
 {
     #[only_owner]
@@ -25,6 +26,8 @@ pub trait EnergyModule:
         week: Week,
         new_min: BigUint,
     ) {
+        self.require_valid_project_id(project_id);
+
         require!(week >= FIRST_WEEK, "Invalid week");
 
         self.energy_per_reward_dollar_for_week(project_id, week)
@@ -45,6 +48,8 @@ pub trait EnergyModule:
         week: Week,
         total_energy_for_week: BigUint,
     ) {
+        self.require_valid_project_id(project_id);
+
         let current_week = self.get_current_week();
         require!(week > current_week, "Invalid week");
 

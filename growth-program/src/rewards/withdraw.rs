@@ -13,6 +13,8 @@ pub trait WithdrawRewardsModule:
     #[only_owner]
     #[endpoint(ownerWithdrawRewards)]
     fn owner_withdraw_rewards(&self, project_id: ProjectId, start_week: Week) {
+        self.require_valid_project_id(project_id);
+
         let info_mapper = self.rewards_info(project_id);
         let mut rewards_info = info_mapper.get();
         let current_week = self.get_current_week();

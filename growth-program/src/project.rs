@@ -34,6 +34,11 @@ pub trait ProjectsModule {
         );
     }
 
+    fn require_valid_project_id(&self, project_id: ProjectId) {
+        let last_project_id = self.last_project_id().get();
+        require!(project_id <= last_project_id, "Invalid project ID");
+    }
+
     #[storage_mapper("lastProjectId")]
     fn last_project_id(&self) -> SingleValueMapper<ProjectId>;
 
