@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-114-g98e03c2"
+            "gitVersion": "v1.0.2-115-g7b584ba"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -264,11 +264,11 @@
             "mutability": "mutable",
             "inputs": [
                 {
-                    "name": "_project_id",
+                    "name": "project_id",
                     "type": "u32"
                 },
                 {
-                    "name": "_max_nr_weeks",
+                    "name": "opt_max_nr_weeks",
                     "type": "optional<u32>",
                     "multi_arg": true
                 }
