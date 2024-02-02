@@ -25,6 +25,8 @@ pub trait EnergyModule:
         week: Week,
         new_min: BigUint,
     ) {
+        require!(week >= FIRST_WEEK, "Invalid week");
+
         self.energy_per_reward_dollar_for_week(project_id, week)
             .set(new_min);
     }
