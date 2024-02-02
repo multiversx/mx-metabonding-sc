@@ -5,8 +5,6 @@ use crate::{project::ProjectId, MAX_PERCENTAGE, PRECISION};
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-// TODO: Account for future energy per dollar
-
 #[multiversx_sc::module]
 pub trait EnergyModule:
     super::common_rewards::CommonRewardsModule
@@ -27,7 +25,7 @@ pub trait EnergyModule:
         week: Week,
         new_min: BigUint,
     ) {
-        self.new_energy_per_reward_dollar(project_id, week)
+        self.energy_per_reward_dollar_for_week(project_id, week)
             .set(new_min);
     }
 
@@ -133,13 +131,6 @@ pub trait EnergyModule:
 
     #[storage_mapper("minEnergyPerRD")]
     fn min_energy_per_reward_dollar(&self) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("newEnergyPerRD")]
-    fn new_energy_per_reward_dollar(
-        &self,
-        project_id: ProjectId,
-        week: Week,
-    ) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("alpha")]
     fn alpha(&self) -> SingleValueMapper<BigUint>;
