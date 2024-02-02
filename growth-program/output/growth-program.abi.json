@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-108-g7a062ed"
+            "gitVersion": "v1.0.2-110-gc15d2bd"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -27,11 +27,11 @@
         ],
         "inputs": [
             {
-                "name": "_min_energy_per_reward_dollar",
+                "name": "min_energy_per_reward_dollar",
                 "type": "BigUint"
             },
             {
-                "name": "_alpha",
+                "name": "alpha",
                 "type": "BigUint"
             },
             {
@@ -187,6 +187,70 @@
                 {
                     "name": "project_id",
                     "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setMinEnergyPerRewardDollar",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "min_value",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setEnergyPerRewardDollarForWeek",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "week",
+                    "type": "u32"
+                },
+                {
+                    "name": "new_min",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setAlpha",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "alpha",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setTotalEnergyForWeek",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "week",
+                    "type": "u32"
+                },
+                {
+                    "name": "total_energy_for_week",
+                    "type": "BigUint"
                 }
             ],
             "outputs": []

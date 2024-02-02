@@ -22,6 +22,7 @@ pub trait GrowthProgram:
     project::ProjectsModule
     + rewards::deposit::DepositRewardsModule
     + rewards::withdraw::WithdrawRewardsModule
+    + rewards::energy::EnergyModule
     + rewards::common_rewards::CommonRewardsModule
     + price_query::PriceQueryModule
     + validation::ValidationModule
@@ -35,8 +36,8 @@ pub trait GrowthProgram:
     #[init]
     fn init(
         &self,
-        _min_energy_per_reward_dollar: BigUint,
-        _alpha: BigUint,
+        min_energy_per_reward_dollar: BigUint,
+        alpha: BigUint,
         signer: ManagedAddress,
         router_address: ManagedAddress,
         safe_price_pair: ManagedAddress,
@@ -53,6 +54,8 @@ pub trait GrowthProgram:
         self.usdc_token_id().set(usdc_token_id);
         self.wegld_token_id().set(wegld_token_id);
 
+        self.set_min_energy_per_reward_dollar(min_energy_per_reward_dollar);
+        self.set_alpha(alpha);
         self.change_signer(signer);
 
         self.min_rewards_period().set(DEFAULT_MIN_REWARDS_PERIOD);
