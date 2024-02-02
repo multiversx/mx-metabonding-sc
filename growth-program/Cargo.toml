@@ -41,3 +41,16 @@ num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.46.1"
+
+[dev-dependencies.multiversx-sc-modules]
+version = "=0.46.1"
+
+[dev-dependencies.pair-mock]
+path = "../pair-mock"
+
+[dev-dependencies.router-mock]
+path = "../router-mock"
+
+[dependencies.energy-factory]
+git = "https://github.com/multiversx/mx-exchange-sc"
+rev = "0c7f45e"
