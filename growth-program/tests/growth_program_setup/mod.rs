@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 
 use energy_factory::SimpleLockEnergy;
-use growth_program::{GrowthProgram, MAX_PERCENTAGE};
+use growth_program::{project::ProjectsModule, GrowthProgram, MAX_PERCENTAGE};
 use multiversx_sc::{
     hex_literal,
     storage::mappers::StorageTokenWrapper,
@@ -280,5 +280,25 @@ where
             energy_factory_wrapper,
             current_epoch,
         }
+    }
+
+    pub fn add_projects(&mut self) {
+        let first_proj_owner = self.first_project_owner.clone();
+        let second_proj_owner = self.second_project_owner.clone();
+
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.gp_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.add_project(managed_address!(&first_proj_owner));
+                    sc.add_project(managed_address!(&second_proj_owner));
+
+                    let last_project_id = sc.last_project_id().get();
+                    assert_eq!(last_project_id, 2);
+                },
+            )
+            .assert_ok();
     }
 }
