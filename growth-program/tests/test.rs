@@ -11,7 +11,10 @@ use growth_program::{
     DEFAULT_MIN_REWARDS_PERIOD,
 };
 use growth_program_setup::*;
-use multiversx_sc_scenario::{managed_biguint, managed_token_id, rust_biguint, DebugApi};
+use multiversx_sc_scenario::{
+    managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint, DebugApi,
+};
+use simple_lock::locked_token::LockedTokenAttributes;
 
 #[test]
 fn setup_test() {
@@ -251,4 +254,62 @@ fn claim_ok_first_week_unlocked_test() {
         .assert_user_error("Already claimed");
 
     // let sig_first_user_week_3 = hex_literal::hex!("03e74195d5c4ba77dfa47a8796c939ff645392f3c3e3a0ec909dd558649aa75cebce56b46f94be83a892f62b6bc19749bedd3058535e29e2c4a32e46d0bfea0e");
+}
+
+#[test]
+fn claim_ok_first_week_locked_test() {
+    let mut setup = GrowthProgramSetup::new(
+        growth_program::contract_obj,
+        pair_mock::contract_obj,
+        router_mock::contract_obj,
+        simple_lock::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    setup.add_projects();
+    setup.deposit_rewards();
+
+    // advance to week 2
+    setup.advance_week();
+
+    let sig_first_user_week_2 = hex_literal::hex!("7f2a309ed332a516c3dff6634bbf9ce42ea57d6cb5acac606010ae47e1180db4f7ecc70d79998eec961bbbc353c49e469233b6c915179795cd07d903969ce905");
+    setup
+        .claim(
+            &setup.first_user_addr.clone(),
+            1,
+            LockOption::OneWeek,
+            0,
+            &sig_first_user_week_2,
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.gp_wrapper, |sc| {
+            let total_energy = sc.total_energy_for_week(1, 2).get();
+            assert_eq!(total_energy, managed_biguint!(192307692307690));
+
+            let interested_energy = sc.interested_energy_for_week(1, 2).get();
+            assert_eq!(interested_energy, managed_biguint!(348000));
+
+            let remaining_energy = sc.remaining_energy_for_week(1, 2).get();
+            assert_eq!(
+                remaining_energy,
+                managed_biguint!(192307692307690u64 - 348000u64)
+            );
+        })
+        .assert_ok();
+
+    let _ = DebugApi::dummy();
+    setup.b_mock.check_nft_balance(
+        &setup.first_user_addr,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(34800000000000417),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(FIRST_PROJ_TOKEN),
+            original_token_nonce: 0,
+            unlock_epoch: 19,
+        }),
+    );
 }
