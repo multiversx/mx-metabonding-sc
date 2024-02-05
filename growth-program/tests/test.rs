@@ -298,7 +298,7 @@ fn claim_ok_first_week_locked_test() {
         })
         .assert_ok();
 
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     setup.b_mock.check_nft_balance(
         &setup.first_user_addr,
         LOCKED_TOKEN_ID,
