@@ -252,8 +252,6 @@ fn claim_ok_first_week_unlocked_test() {
             &sig_first_user_week_2,
         )
         .assert_user_error("Already claimed");
-
-    // let sig_first_user_week_3 = hex_literal::hex!("03e74195d5c4ba77dfa47a8796c939ff645392f3c3e3a0ec909dd558649aa75cebce56b46f94be83a892f62b6bc19749bedd3058535e29e2c4a32e46d0bfea0e");
 }
 
 #[test]

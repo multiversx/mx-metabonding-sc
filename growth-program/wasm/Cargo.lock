@@ -120,6 +120,7 @@ dependencies = [
  "energy-factory",
  "energy-query",
  "multiversx-sc",
+ "multiversx-sc-modules",
  "pair",
  "router",
  "simple-lock",

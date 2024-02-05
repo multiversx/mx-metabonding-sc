@@ -39,6 +39,7 @@ pub trait ClaimRewardsModule:
     + super::common_rewards::CommonRewardsModule
     + crate::validation::ValidationModule
     + energy_query::EnergyQueryModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[endpoint(claimRewards)]
     fn claim_rewards(
@@ -48,6 +49,7 @@ pub trait ClaimRewardsModule:
         min_rewards: BigUint,
         signature: Signature<Self::Api>,
     ) -> OptionalValue<EsdtTokenPayment> {
+        self.require_not_paused();
         self.require_valid_project_id(project_id);
 
         let current_week = self.get_current_week();

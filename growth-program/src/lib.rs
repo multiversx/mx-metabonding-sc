@@ -17,8 +17,6 @@ pub const DEFAULT_MIN_REWARDS_PERIOD: Week = 26;
 pub const DEFAULT_MIN_WEEKLY_REWARDS_DOLLARS_VALUE: u64 = 1_000;
 pub const USDC_DECIMALS: u32 = 6;
 
-// TODO: Add pause module
-
 #[multiversx_sc::contract]
 pub trait GrowthProgram:
     project::ProjectsModule
@@ -32,6 +30,7 @@ pub trait GrowthProgram:
     + week_timekeeping::WeekTimekeepingModule
     + utils::UtilsModule
     + energy_query::EnergyQueryModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     /// Arguments:
     /// min_energy_per_reward_dollar: Scaled to PRECISION const.
@@ -77,6 +76,8 @@ pub trait GrowthProgram:
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set(current_epoch);
+
+        self.set_paused(true);
     }
 
     #[endpoint]

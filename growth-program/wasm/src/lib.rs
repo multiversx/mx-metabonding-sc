@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           20
+// Endpoints:                           23
 // Async Callback (empty):               1
-// Total number of exported functions:  22
+// Total number of exported functions:  25
 
 #![no_std]
 #![allow(internal_features)]
@@ -40,6 +40,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         getFirstWeekStartEpoch => first_week_start_epoch
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
+        pause => pause_endpoint
+        unpause => unpause_endpoint
+        isPaused => paused_status
     )
 }
 
