@@ -11,6 +11,7 @@ pub trait DepositRewardsModule:
     crate::project::ProjectsModule
     + crate::price_query::PriceQueryModule
     + super::common_rewards::CommonRewardsModule
+    + super::energy::EnergyModule
     + week_timekeeping::WeekTimekeepingModule
 {
     #[only_owner]
@@ -27,7 +28,13 @@ pub trait DepositRewardsModule:
 
     #[payable("*")]
     #[endpoint(depositInitialRewards)]
-    fn deposit_initial_rewards(&self, project_id: ProjectId, start_week: Week, end_week: Week) {
+    fn deposit_initial_rewards(
+        &self,
+        project_id: ProjectId,
+        start_week: Week,
+        end_week: Week,
+        initial_energy_per_rew_dollar: BigUint,
+    ) {
         let caller = self.blockchain().get_caller();
         self.require_is_project_owner(&caller, project_id);
 
@@ -54,6 +61,9 @@ pub trait DepositRewardsModule:
             self.rewards_remaining_amount(project_id, week)
                 .set(&rewards_per_week);
         }
+
+        self.energy_per_reward_dollar_for_week(project_id, start_week)
+            .set(initial_energy_per_rew_dollar);
 
         let surplus_amount = amount - &rewards_per_week * week_diff as u32;
         let surplus_payment = EsdtTokenPayment::new(token_id.clone(), 0, surplus_amount);
