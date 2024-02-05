@@ -1,9 +1,12 @@
 #![allow(deprecated)]
 
 pub mod growth_program_setup;
-use growth_program::rewards::deposit::DepositRewardsModule;
+use growth_program::{
+    rewards::{common_rewards::CommonRewardsModule, deposit::DepositRewardsModule},
+    DEFAULT_MIN_REWARDS_PERIOD,
+};
 use growth_program_setup::*;
-use multiversx_sc_scenario::{managed_biguint, rust_biguint};
+use multiversx_sc_scenario::{managed_biguint, rust_biguint, DebugApi};
 
 #[test]
 fn setup_test() {
@@ -68,7 +71,7 @@ fn deposit_wrong_week_amount_test() {
 
     setup.add_projects();
 
-    let amount = rust_biguint!(TOTAL_FIRST_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS);
+    let amount = StaticMethods::get_first_token_full_amount();
 
     setup
         .b_mock
@@ -86,7 +89,7 @@ fn deposit_wrong_week_amount_test() {
 }
 
 #[test]
-fn deposit_rewards_test() {
+fn deposit_rewards_ok_test() {
     let mut setup = GrowthProgramSetup::new(
         growth_program::contract_obj,
         pair_mock::contract_obj,
@@ -97,4 +100,16 @@ fn deposit_rewards_test() {
 
     setup.add_projects();
     setup.deposit_rewards();
+
+    setup
+        .b_mock
+        .execute_query(&setup.gp_wrapper, |sc| {
+            let rewards_per_week_amount = sc.rewards_total_amount(1, 2).get();
+            assert_eq!(
+                rewards_per_week_amount,
+                StaticMethods::get_first_token_full_amount_managed::<DebugApi>()
+                    / DEFAULT_MIN_REWARDS_PERIOD as u32
+            );
+        })
+        .assert_ok();
 }

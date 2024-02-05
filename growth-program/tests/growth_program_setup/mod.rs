@@ -6,6 +6,7 @@ use growth_program::{
     DEFAULT_MIN_REWARDS_PERIOD, MAX_PERCENTAGE,
 };
 use multiversx_sc::{
+    api::ManagedTypeApi,
     hex_literal,
     storage::mappers::StorageTokenWrapper,
     types::{Address, EsdtLocalRole, MultiValueEncoded},
@@ -125,12 +126,12 @@ where
         b_mock.set_esdt_balance(
             &first_project_owner,
             FIRST_PROJ_TOKEN,
-            &Self::get_first_token_full_amount(),
+            &StaticMethods::get_first_token_full_amount(),
         );
         b_mock.set_esdt_balance(
             &second_project_owner,
             SECOND_PROJ_TOKEN,
-            &Self::get_second_token_full_amount(),
+            &StaticMethods::get_second_token_full_amount(),
         );
 
         let current_epoch = 5;
@@ -309,14 +310,6 @@ where
             .assert_ok();
     }
 
-    pub fn get_first_token_full_amount() -> num_bigint::BigUint {
-        rust_biguint!(TOTAL_FIRST_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)
-    }
-
-    pub fn get_second_token_full_amount() -> num_bigint::BigUint {
-        rust_biguint!(TOTAL_SECOND_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)
-    }
-
     pub fn deposit_rewards(&mut self) {
         let first_proj_owner = self.first_project_owner.clone();
         let second_proj_owner = self.second_project_owner.clone();
@@ -327,7 +320,7 @@ where
                 &self.gp_wrapper,
                 FIRST_PROJ_TOKEN,
                 0,
-                &Self::get_first_token_full_amount(),
+                &StaticMethods::get_first_token_full_amount(),
                 |sc| {
                     sc.deposit_initial_rewards(
                         1,
@@ -345,7 +338,7 @@ where
                 &self.gp_wrapper,
                 SECOND_PROJ_TOKEN,
                 0,
-                &Self::get_second_token_full_amount(),
+                &StaticMethods::get_second_token_full_amount(),
                 |sc| {
                     sc.deposit_initial_rewards(
                         2,
@@ -356,5 +349,27 @@ where
                 },
             )
             .assert_ok();
+    }
+}
+
+pub struct StaticMethods {}
+
+impl StaticMethods {
+    pub fn get_first_token_full_amount() -> num_bigint::BigUint {
+        rust_biguint!(TOTAL_FIRST_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)
+    }
+
+    pub fn get_second_token_full_amount() -> num_bigint::BigUint {
+        rust_biguint!(TOTAL_SECOND_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)
+    }
+
+    pub fn get_first_token_full_amount_managed<M: ManagedTypeApi>(
+    ) -> multiversx_sc::types::BigUint<M> {
+        managed_biguint!(TOTAL_FIRST_PROJ_TOKENS) * managed_biguint!(10).pow(DEFAULT_DECIMALS)
+    }
+
+    pub fn get_second_token_full_amount_managed<M: ManagedTypeApi>(
+    ) -> multiversx_sc::types::BigUint<M> {
+        managed_biguint!(TOTAL_SECOND_PROJ_TOKENS) * managed_biguint!(10).pow(DEFAULT_DECIMALS)
     }
 }
