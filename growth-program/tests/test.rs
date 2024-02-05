@@ -311,3 +311,31 @@ fn claim_ok_first_week_locked_test() {
         }),
     );
 }
+
+#[test]
+fn claim_too_many_rewards_test() {
+    let mut setup = GrowthProgramSetup::new(
+        growth_program::contract_obj,
+        pair_mock::contract_obj,
+        router_mock::contract_obj,
+        simple_lock::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    setup.add_projects();
+    setup.deposit_rewards();
+
+    // advance to week 2
+    setup.advance_week();
+
+    let sig_first_user_week_2 = hex_literal::hex!("7f2a309ed332a516c3dff6634bbf9ce42ea57d6cb5acac606010ae47e1180db4f7ecc70d79998eec961bbbc353c49e469233b6c915179795cd07d903969ce905");
+    setup
+        .claim(
+            &setup.first_user_addr.clone(),
+            1,
+            LockOption::None,
+            17400000000000209,
+            &sig_first_user_week_2,
+        )
+        .assert_user_error("Too few rewards");
+}
