@@ -1,7 +1,10 @@
 #![allow(deprecated)]
 
 use energy_factory::SimpleLockEnergy;
-use growth_program::{project::ProjectsModule, GrowthProgram, MAX_PERCENTAGE};
+use growth_program::{
+    project::ProjectsModule, rewards::deposit::DepositRewardsModule, GrowthProgram,
+    DEFAULT_MIN_REWARDS_PERIOD, MAX_PERCENTAGE,
+};
 use multiversx_sc::{
     hex_literal,
     storage::mappers::StorageTokenWrapper,
@@ -41,6 +44,8 @@ pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static ENERGY_TOKEN_ID: &[u8] = b"ENERGY-123456";
 pub static WEGLD_TOKEN_ID: &[u8] = b"WEGLD-123456";
+
+pub const DEFAULT_ENERGY_PER_DOLLAR: u64 = 5;
 
 pub struct GrowthProgramSetup<
     GrowthProgramBuilder,
@@ -120,12 +125,12 @@ where
         b_mock.set_esdt_balance(
             &first_project_owner,
             FIRST_PROJ_TOKEN,
-            &(rust_biguint!(TOTAL_FIRST_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)),
+            &Self::get_first_token_full_amount(),
         );
         b_mock.set_esdt_balance(
             &second_project_owner,
             SECOND_PROJ_TOKEN,
-            &(rust_biguint!(TOTAL_SECOND_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)),
+            &Self::get_second_token_full_amount(),
         );
 
         let current_epoch = 5;
@@ -292,11 +297,62 @@ where
                 &self.gp_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.add_project(managed_address!(&first_proj_owner));
-                    sc.add_project(managed_address!(&second_proj_owner));
-
+                    let first_proj_id = sc.add_project(managed_address!(&first_proj_owner));
+                    let second_proj_id = sc.add_project(managed_address!(&second_proj_owner));
                     let last_project_id = sc.last_project_id().get();
+
+                    assert_eq!(first_proj_id, 1);
+                    assert_eq!(second_proj_id, 2);
                     assert_eq!(last_project_id, 2);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn get_first_token_full_amount() -> num_bigint::BigUint {
+        rust_biguint!(TOTAL_FIRST_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)
+    }
+
+    pub fn get_second_token_full_amount() -> num_bigint::BigUint {
+        rust_biguint!(TOTAL_SECOND_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)
+    }
+
+    pub fn deposit_rewards(&mut self) {
+        let first_proj_owner = self.first_project_owner.clone();
+        let second_proj_owner = self.second_project_owner.clone();
+
+        self.b_mock
+            .execute_esdt_transfer(
+                &first_proj_owner,
+                &self.gp_wrapper,
+                FIRST_PROJ_TOKEN,
+                0,
+                &Self::get_first_token_full_amount(),
+                |sc| {
+                    sc.deposit_initial_rewards(
+                        1,
+                        2,
+                        2 + DEFAULT_MIN_REWARDS_PERIOD,
+                        managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR),
+                    );
+                },
+            )
+            .assert_ok();
+
+        self.b_mock
+            .execute_esdt_transfer(
+                &second_proj_owner,
+                &self.gp_wrapper,
+                SECOND_PROJ_TOKEN,
+                0,
+                &Self::get_second_token_full_amount(),
+                |sc| {
+                    sc.deposit_initial_rewards(
+                        2,
+                        2,
+                        2 + DEFAULT_MIN_REWARDS_PERIOD,
+                        managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR),
+                    );
                 },
             )
             .assert_ok();
