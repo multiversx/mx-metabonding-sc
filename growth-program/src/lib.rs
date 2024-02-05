@@ -17,6 +17,8 @@ pub const DEFAULT_MIN_REWARDS_PERIOD: Week = 26;
 pub const DEFAULT_MIN_WEEKLY_REWARDS_DOLLARS_VALUE: u64 = 1_000;
 pub const USDC_DECIMALS: u32 = 6;
 
+// TODO: Add pause module
+
 #[multiversx_sc::contract]
 pub trait GrowthProgram:
     project::ProjectsModule

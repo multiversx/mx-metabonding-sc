@@ -1,5 +1,7 @@
 use week_timekeeping::Week;
 
+use crate::project::ProjectId;
+
 multiversx_sc::imports!();
 
 pub type Signature<M> = ManagedByteArray<M, ED25519_SIGNATURE_BYTE_LEN>;
@@ -16,11 +18,13 @@ pub trait ValidationModule {
     fn verify_signature(
         &self,
         caller: &ManagedAddress,
+        project_id: ProjectId,
         week: Week,
         signature: &Signature<Self::Api>,
     ) {
         let mut data = ManagedBuffer::new();
         let _ = caller.dep_encode(&mut data);
+        let _ = project_id.dep_encode(&mut data);
         let _ = week.dep_encode(&mut data);
 
         let signer = self.signer().get();

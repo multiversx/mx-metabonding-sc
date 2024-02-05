@@ -63,7 +63,7 @@ pub trait ClaimRewardsModule:
         let user_id = self.user_ids().get_id_or_insert(&caller);
         require!(!claimed_user_mapper.contains(&user_id), "Already claimed");
 
-        self.verify_signature(&caller, current_week, &signature);
+        self.verify_signature(&caller, project_id, current_week, &signature);
         self.update_rewards(project_id, OptionalValue::None, &mut rewards_info);
 
         let total_energy = self.get_total_energy_for_current_week(project_id);

@@ -2,19 +2,24 @@
 
 use energy_factory::SimpleLockEnergy;
 use growth_program::{
-    project::ProjectsModule, rewards::deposit::DepositRewardsModule, GrowthProgram,
-    DEFAULT_MIN_REWARDS_PERIOD, MAX_PERCENTAGE,
+    project::{ProjectId, ProjectsModule},
+    rewards::{
+        claim::{ClaimRewardsModule, LockOption},
+        deposit::DepositRewardsModule,
+    },
+    GrowthProgram, DEFAULT_MIN_REWARDS_PERIOD, MAX_PERCENTAGE, PRECISION,
 };
 use multiversx_sc::{
     api::ManagedTypeApi,
+    codec::multi_types::OptionalValue,
     hex_literal,
     storage::mappers::StorageTokenWrapper,
-    types::{Address, EsdtLocalRole, MultiValueEncoded},
+    types::{Address, EsdtLocalRole, ManagedByteArray, MultiValueEncoded},
 };
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
+    testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
 use pair_mock::PairMock;
@@ -47,6 +52,9 @@ pub static ENERGY_TOKEN_ID: &[u8] = b"ENERGY-123456";
 pub static WEGLD_TOKEN_ID: &[u8] = b"WEGLD-123456";
 
 pub const DEFAULT_ENERGY_PER_DOLLAR: u64 = 5;
+
+pub const FIRST_USER_LOCKED_TOKENS: u64 = 1_000;
+pub const SECOND_USER_LOCKED_TOKENS: u64 = 2_000;
 
 pub struct GrowthProgramSetup<
     GrowthProgramBuilder,
@@ -246,6 +254,44 @@ where
             &[EsdtLocalRole::NftBurn],
         );
 
+        // users lock tokens
+        b_mock.set_esdt_balance(
+            &first_user_addr,
+            BASE_ASSET_TOKEN_ID,
+            &rust_biguint!(FIRST_USER_LOCKED_TOKENS),
+        );
+        b_mock.set_esdt_balance(
+            &second_user_addr,
+            BASE_ASSET_TOKEN_ID,
+            &rust_biguint!(SECOND_USER_LOCKED_TOKENS),
+        );
+
+        b_mock
+            .execute_esdt_transfer(
+                &first_user_addr,
+                &energy_factory_wrapper,
+                BASE_ASSET_TOKEN_ID,
+                0,
+                &rust_biguint!(FIRST_USER_LOCKED_TOKENS),
+                |sc| {
+                    sc.lock_tokens_endpoint(LOCK_OPTIONS[0], OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
+        b_mock
+            .execute_esdt_transfer(
+                &second_user_addr,
+                &energy_factory_wrapper,
+                BASE_ASSET_TOKEN_ID,
+                0,
+                &rust_biguint!(SECOND_USER_LOCKED_TOKENS),
+                |sc| {
+                    sc.lock_tokens_endpoint(LOCK_OPTIONS[0], OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
         // Growth Program SC init
 
         let gp_wrapper = b_mock.create_sc_account(
@@ -259,7 +305,7 @@ where
                 let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
 
                 sc.init(
-                    managed_biguint!(10),
+                    managed_biguint!(10) * PRECISION,
                     managed_biguint!(25) * MAX_PERCENTAGE / 100u32, // 25%
                     signer_addr,
                     managed_address!(router_wrapper.address_ref()),
@@ -326,7 +372,7 @@ where
                         1,
                         2,
                         2 + DEFAULT_MIN_REWARDS_PERIOD,
-                        managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR),
+                        managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR) * PRECISION,
                     );
                 },
             )
@@ -349,6 +395,30 @@ where
                 },
             )
             .assert_ok();
+    }
+
+    pub fn advance_week(&mut self) {
+        self.current_epoch += EPOCHS_IN_WEEK;
+        self.b_mock.set_block_epoch(self.current_epoch);
+    }
+
+    pub fn claim(
+        &mut self,
+        user: &Address,
+        project_id: ProjectId,
+        lock_option: LockOption,
+        min_rewards: u64,
+        signature: &[u8; 64],
+    ) -> TxResult {
+        self.b_mock
+            .execute_tx(user, &self.gp_wrapper, &rust_biguint!(0), |sc| {
+                let _ = sc.claim_rewards(
+                    project_id,
+                    lock_option,
+                    managed_biguint!(min_rewards),
+                    ManagedByteArray::new_from_bytes(signature),
+                );
+            })
     }
 }
 
