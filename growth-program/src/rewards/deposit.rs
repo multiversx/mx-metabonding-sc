@@ -13,6 +13,7 @@ pub trait DepositRewardsModule:
     + super::common_rewards::CommonRewardsModule
     + super::energy::EnergyModule
     + week_timekeeping::WeekTimekeepingModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[only_owner]
     #[endpoint(setMinRewardsPeriod)]
@@ -35,6 +36,9 @@ pub trait DepositRewardsModule:
         end_week: Week,
         initial_energy_per_rew_dollar: BigUint,
     ) {
+        self.require_not_paused();
+        self.require_valid_project_id(project_id);
+
         let caller = self.blockchain().get_caller();
         self.require_is_project_owner(&caller, project_id);
 
@@ -82,6 +86,9 @@ pub trait DepositRewardsModule:
     #[payable("*")]
     #[endpoint(depositAdditionalRewards)]
     fn deposit_additional_rewards(&self, project_id: ProjectId, start_week: Week, end_week: Week) {
+        self.require_not_paused();
+        self.require_valid_project_id(project_id);
+
         let caller = self.blockchain().get_caller();
         self.require_is_project_owner(&caller, project_id);
 

@@ -5,7 +5,7 @@ use crate::project::ProjectId;
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct RewardsInfo<M: ManagedTypeApi> {
     pub reward_token_id: TokenIdentifier<M>,
     pub undistributed_rewards: BigUint<M>,
@@ -33,7 +33,7 @@ pub trait CommonRewardsModule: week_timekeeping::WeekTimekeepingModule {
         rewards_info: &mut RewardsInfo<Self::Api>,
     ) {
         let current_week = self.get_current_week();
-        if rewards_info.start_week == current_week {
+        if rewards_info.start_week >= current_week {
             return;
         }
 

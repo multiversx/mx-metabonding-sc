@@ -1,16 +1,25 @@
 #![allow(deprecated)]
 
 use energy_factory::SimpleLockEnergy;
-use growth_program::{GrowthProgram, MAX_PERCENTAGE};
+use growth_program::{
+    project::{ProjectId, ProjectsModule},
+    rewards::{
+        claim::{ClaimRewardsModule, LockOption},
+        deposit::DepositRewardsModule,
+    },
+    GrowthProgram, DEFAULT_MIN_REWARDS_PERIOD, MAX_PERCENTAGE, PRECISION,
+};
 use multiversx_sc::{
+    api::ManagedTypeApi,
+    codec::multi_types::OptionalValue,
     hex_literal,
     storage::mappers::StorageTokenWrapper,
-    types::{Address, EsdtLocalRole, MultiValueEncoded},
+    types::{Address, EsdtLocalRole, ManagedByteArray, MultiValueEncoded},
 };
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
+    testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
 use pair_mock::PairMock;
@@ -41,6 +50,11 @@ pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static ENERGY_TOKEN_ID: &[u8] = b"ENERGY-123456";
 pub static WEGLD_TOKEN_ID: &[u8] = b"WEGLD-123456";
+
+pub const DEFAULT_ENERGY_PER_DOLLAR: u64 = 5;
+
+pub const FIRST_USER_LOCKED_TOKENS: u64 = 1_000;
+pub const SECOND_USER_LOCKED_TOKENS: u64 = 2_000;
 
 pub struct GrowthProgramSetup<
     GrowthProgramBuilder,
@@ -120,12 +134,12 @@ where
         b_mock.set_esdt_balance(
             &first_project_owner,
             FIRST_PROJ_TOKEN,
-            &(rust_biguint!(TOTAL_FIRST_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)),
+            &StaticMethods::get_first_token_full_amount(),
         );
         b_mock.set_esdt_balance(
             &second_project_owner,
             SECOND_PROJ_TOKEN,
-            &(rust_biguint!(TOTAL_SECOND_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)),
+            &StaticMethods::get_second_token_full_amount(),
         );
 
         let current_epoch = 5;
@@ -240,6 +254,44 @@ where
             &[EsdtLocalRole::NftBurn],
         );
 
+        // users lock tokens
+        b_mock.set_esdt_balance(
+            &first_user_addr,
+            BASE_ASSET_TOKEN_ID,
+            &rust_biguint!(FIRST_USER_LOCKED_TOKENS),
+        );
+        b_mock.set_esdt_balance(
+            &second_user_addr,
+            BASE_ASSET_TOKEN_ID,
+            &rust_biguint!(SECOND_USER_LOCKED_TOKENS),
+        );
+
+        b_mock
+            .execute_esdt_transfer(
+                &first_user_addr,
+                &energy_factory_wrapper,
+                BASE_ASSET_TOKEN_ID,
+                0,
+                &rust_biguint!(FIRST_USER_LOCKED_TOKENS),
+                |sc| {
+                    sc.lock_tokens_endpoint(LOCK_OPTIONS[0], OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
+        b_mock
+            .execute_esdt_transfer(
+                &second_user_addr,
+                &energy_factory_wrapper,
+                BASE_ASSET_TOKEN_ID,
+                0,
+                &rust_biguint!(SECOND_USER_LOCKED_TOKENS),
+                |sc| {
+                    sc.lock_tokens_endpoint(LOCK_OPTIONS[0], OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
         // Growth Program SC init
 
         let gp_wrapper = b_mock.create_sc_account(
@@ -253,7 +305,7 @@ where
                 let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
 
                 sc.init(
-                    managed_biguint!(10),
+                    managed_biguint!(10) * PRECISION,
                     managed_biguint!(25) * MAX_PERCENTAGE / 100u32, // 25%
                     signer_addr,
                     managed_address!(router_wrapper.address_ref()),
@@ -263,6 +315,8 @@ where
                     managed_token_id!(USDC_TOKEN_ID),
                     managed_token_id!(WEGLD_TOKEN_ID),
                 );
+
+                sc.set_paused(false);
             })
             .assert_ok();
 
@@ -280,5 +334,114 @@ where
             energy_factory_wrapper,
             current_epoch,
         }
+    }
+
+    pub fn add_projects(&mut self) {
+        let first_proj_owner = self.first_project_owner.clone();
+        let second_proj_owner = self.second_project_owner.clone();
+
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.gp_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    let first_proj_id = sc.add_project(managed_address!(&first_proj_owner));
+                    let second_proj_id = sc.add_project(managed_address!(&second_proj_owner));
+                    let last_project_id = sc.last_project_id().get();
+
+                    assert_eq!(first_proj_id, 1);
+                    assert_eq!(second_proj_id, 2);
+                    assert_eq!(last_project_id, 2);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn deposit_rewards(&mut self) {
+        let first_proj_owner = self.first_project_owner.clone();
+        let second_proj_owner = self.second_project_owner.clone();
+
+        self.b_mock
+            .execute_esdt_transfer(
+                &first_proj_owner,
+                &self.gp_wrapper,
+                FIRST_PROJ_TOKEN,
+                0,
+                &StaticMethods::get_first_token_full_amount(),
+                |sc| {
+                    sc.deposit_initial_rewards(
+                        1,
+                        2,
+                        2 + DEFAULT_MIN_REWARDS_PERIOD,
+                        managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR) * PRECISION,
+                    );
+                },
+            )
+            .assert_ok();
+
+        self.b_mock
+            .execute_esdt_transfer(
+                &second_proj_owner,
+                &self.gp_wrapper,
+                SECOND_PROJ_TOKEN,
+                0,
+                &StaticMethods::get_second_token_full_amount(),
+                |sc| {
+                    sc.deposit_initial_rewards(
+                        2,
+                        2,
+                        2 + DEFAULT_MIN_REWARDS_PERIOD,
+                        managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR),
+                    );
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn advance_week(&mut self) {
+        self.current_epoch += EPOCHS_IN_WEEK;
+        self.b_mock.set_block_epoch(self.current_epoch);
+    }
+
+    pub fn claim(
+        &mut self,
+        user: &Address,
+        project_id: ProjectId,
+        lock_option: LockOption,
+        min_rewards: u64,
+        signature: &[u8; 64],
+    ) -> TxResult {
+        self.b_mock
+            .execute_tx(user, &self.gp_wrapper, &rust_biguint!(0), |sc| {
+                let _ = sc.claim_rewards(
+                    project_id,
+                    lock_option,
+                    managed_biguint!(min_rewards),
+                    ManagedByteArray::new_from_bytes(signature),
+                );
+            })
+    }
+}
+
+pub struct StaticMethods {}
+
+impl StaticMethods {
+    pub fn get_first_token_full_amount() -> num_bigint::BigUint {
+        rust_biguint!(TOTAL_FIRST_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)
+    }
+
+    pub fn get_second_token_full_amount() -> num_bigint::BigUint {
+        rust_biguint!(TOTAL_SECOND_PROJ_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)
+    }
+
+    pub fn get_first_token_full_amount_managed<M: ManagedTypeApi>(
+    ) -> multiversx_sc::types::BigUint<M> {
+        managed_biguint!(TOTAL_FIRST_PROJ_TOKENS) * managed_biguint!(10).pow(DEFAULT_DECIMALS)
+    }
+
+    pub fn get_second_token_full_amount_managed<M: ManagedTypeApi>(
+    ) -> multiversx_sc::types::BigUint<M> {
+        managed_biguint!(TOTAL_SECOND_PROJ_TOKENS) * managed_biguint!(10).pow(DEFAULT_DECIMALS)
     }
 }

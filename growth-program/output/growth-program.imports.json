@@ -42,6 +42,7 @@
   "managedSignalError",
   "managedVerifyEd25519",
   "signalError",
+  "smallIntFinishSigned",
   "smallIntFinishUnsigned",
   "smallIntGetUnsignedArgument",
   "validateTokenIdentifier"

@@ -9,6 +9,7 @@ pub trait WithdrawRewardsModule:
     super::common_rewards::CommonRewardsModule
     + crate::project::ProjectsModule
     + week_timekeeping::WeekTimekeepingModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[only_owner]
     #[endpoint(ownerWithdrawRewards)]
@@ -56,6 +57,8 @@ pub trait WithdrawRewardsModule:
 
     #[endpoint(finishProgram)]
     fn finish_program(&self, project_id: ProjectId) {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         self.require_is_project_owner(&caller, project_id);
 

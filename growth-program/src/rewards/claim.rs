@@ -39,6 +39,7 @@ pub trait ClaimRewardsModule:
     + super::common_rewards::CommonRewardsModule
     + crate::validation::ValidationModule
     + energy_query::EnergyQueryModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[endpoint(claimRewards)]
     fn claim_rewards(
@@ -48,6 +49,7 @@ pub trait ClaimRewardsModule:
         min_rewards: BigUint,
         signature: Signature<Self::Api>,
     ) -> OptionalValue<EsdtTokenPayment> {
+        self.require_not_paused();
         self.require_valid_project_id(project_id);
 
         let current_week = self.get_current_week();
@@ -63,7 +65,7 @@ pub trait ClaimRewardsModule:
         let user_id = self.user_ids().get_id_or_insert(&caller);
         require!(!claimed_user_mapper.contains(&user_id), "Already claimed");
 
-        self.verify_signature(&caller, current_week, &signature);
+        self.verify_signature(&caller, project_id, current_week, &signature);
         self.update_rewards(project_id, OptionalValue::None, &mut rewards_info);
 
         let total_energy = self.get_total_energy_for_current_week(project_id);
