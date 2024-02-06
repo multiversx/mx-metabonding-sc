@@ -23,11 +23,13 @@ pub trait GrowthProgram:
     + rewards::deposit::DepositRewardsModule
     + rewards::withdraw::WithdrawRewardsModule
     + rewards::energy::EnergyModule
+    + rewards::claim::ClaimRewardsModule
     + rewards::common_rewards::CommonRewardsModule
     + price_query::PriceQueryModule
     + validation::ValidationModule
     + week_timekeeping::WeekTimekeepingModule
     + utils::UtilsModule
+    + energy_query::EnergyQueryModule
 {
     /// Arguments:
     /// min_energy_per_reward_dollar: Scaled to PRECISION const.
@@ -41,19 +43,24 @@ pub trait GrowthProgram:
         signer: ManagedAddress,
         router_address: ManagedAddress,
         safe_price_pair: ManagedAddress,
+        energy_factory_address: ManagedAddress,
+        simple_lock_address: ManagedAddress,
         usdc_token_id: TokenIdentifier,
         wegld_token_id: TokenIdentifier,
     ) {
         self.require_sc_address(&router_address);
         self.require_sc_address(&safe_price_pair);
+        self.require_sc_address(&simple_lock_address);
         self.require_valid_token_id(&usdc_token_id);
         self.require_valid_token_id(&wegld_token_id);
 
         self.router_address().set(router_address);
         self.safe_price_pair().set(safe_price_pair);
+        self.simple_lock_address().set(simple_lock_address);
         self.usdc_token_id().set(usdc_token_id);
         self.wegld_token_id().set(wegld_token_id);
 
+        self.set_energy_factory_address(energy_factory_address);
         self.set_min_energy_per_reward_dollar(min_energy_per_reward_dollar);
         self.set_alpha(alpha);
         self.change_signer(signer);
