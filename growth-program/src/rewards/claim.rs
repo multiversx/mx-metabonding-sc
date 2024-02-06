@@ -130,6 +130,10 @@ pub trait ClaimRewardsModule:
         lock_epochs: Epoch,
         user_address: ManagedAddress,
     ) -> EsdtTokenPayment {
+        if payment.amount == 0 {
+            return payment;
+        }
+
         let current_epoch = self.blockchain().get_block_epoch();
         let unlock_epoch = current_epoch + lock_epochs;
         let simple_lock_address = self.simple_lock_address().get();

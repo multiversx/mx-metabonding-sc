@@ -117,6 +117,7 @@ dependencies = [
 name = "growth-program"
 version = "0.0.0"
 dependencies = [
+ "energy-factory",
  "energy-query",
  "multiversx-sc",
  "pair",
