@@ -5,7 +5,7 @@ use crate::{project::ProjectId, validation::Signature, MAX_PERCENTAGE};
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Copy)]
 pub enum LockOption {
     None,
     OneWeek,
@@ -45,9 +45,9 @@ pub trait ClaimRewardsModule:
     fn claim_rewards(
         &self,
         project_id: ProjectId,
-        lock_option: LockOption,
         min_rewards: BigUint,
         signature: Signature<Self::Api>,
+        opt_lock_option: OptionalValue<LockOption>,
     ) -> OptionalValue<EsdtTokenPayment> {
         self.require_not_paused();
         self.require_valid_project_id(project_id);
@@ -68,18 +68,16 @@ pub trait ClaimRewardsModule:
         self.verify_signature(&caller, project_id, current_week, &signature);
         self.update_rewards(project_id, OptionalValue::None, &mut rewards_info);
 
-        let total_energy = self.get_total_energy_for_current_week(project_id);
-        let user_energy = self.get_energy_amount(&caller);
-        self.interested_energy_for_week(project_id, current_week)
-            .update(|interested_energy| *interested_energy += &user_energy);
-
         claimed_user_mapper.insert(user_id);
 
-        let remaining_energy_mapper = self.remaining_energy_for_week(project_id, current_week);
-        let remaining_energy = remaining_energy_mapper.get();
-        if remaining_energy == 0 {
+        let user_original_energy = self.get_energy_amount(&caller);
+        let rem_rewards_mapper = self.rewards_remaining_amount(project_id, current_week);
+        let remaining_rewards = rem_rewards_mapper.get();
+        if remaining_rewards == 0 {
             require!(min_rewards == 0, "Invalid min rewards");
 
+            self.registered_energy_exemption_claimers(project_id, current_week)
+                .update(|reg_energy| *reg_energy += user_original_energy);
             let _ = self
                 .exempted_participants(project_id, current_week + 1)
                 .insert(user_id);
@@ -87,23 +85,27 @@ pub trait ClaimRewardsModule:
             return OptionalValue::None;
         }
 
-        let user_remaining_energy = core::cmp::min(remaining_energy.clone(), user_energy);
-        let new_remaining_energy = &remaining_energy - &user_remaining_energy;
-        remaining_energy_mapper.set(new_remaining_energy);
+        require!(opt_lock_option.is_some(), "No lock option provided");
+
+        let lock_option = unsafe { opt_lock_option.into_option().unwrap_unchecked() };
+        let user_adjusted_energy =
+            self.adjust_energy_to_lock_option(user_original_energy.clone(), lock_option);
+        self.registered_energy_rewards_claimers(project_id, current_week)
+            .update(|reg_energy| *reg_energy += user_original_energy);
+        self.interested_energy_rewards_claimers(project_id, current_week)
+            .update(|int_energy| *int_energy += &user_adjusted_energy);
 
         let total_rewards = self.rewards_total_amount(project_id, current_week).get();
-        let total_user_rewards = total_rewards * user_remaining_energy / total_energy;
+        let total_energy = self.get_total_energy_for_current_week(project_id);
+        let max_rewards = total_rewards * user_adjusted_energy / total_energy;
+        let user_rewards = core::cmp::min(max_rewards, remaining_rewards);
+        require!(user_rewards >= min_rewards, "Too few rewards");
+
+        rem_rewards_mapper.update(|rem_rew| *rem_rew -= &user_rewards);
+
         let lock_period = lock_option.get_lock_period();
-        let final_user_rewards =
-            self.adjust_rewards_to_lock_option(total_user_rewards, lock_option);
-
-        require!(final_user_rewards >= min_rewards, "Too few rewards");
-
-        self.rewards_remaining_amount(project_id, current_week)
-            .update(|rem_rew| *rem_rew -= &final_user_rewards);
-
         let unlocked_payment =
-            EsdtTokenPayment::new(rewards_info.reward_token_id.clone(), 0, final_user_rewards);
+            EsdtTokenPayment::new(rewards_info.reward_token_id.clone(), 0, user_rewards);
         let output_payment = if lock_period > 0 {
             self.lock_tokens(unlocked_payment, lock_period, caller)
         } else {
@@ -118,7 +120,7 @@ pub trait ClaimRewardsModule:
         OptionalValue::Some(output_payment)
     }
 
-    fn adjust_rewards_to_lock_option(&self, amount: BigUint, lock_option: LockOption) -> BigUint {
+    fn adjust_energy_to_lock_option(&self, amount: BigUint, lock_option: LockOption) -> BigUint {
         match lock_option {
             LockOption::None => amount * NONE_PERCENTAGE / MAX_PERCENTAGE,
             LockOption::OneWeek => amount * ONE_WEEK_PERCENTAGE / MAX_PERCENTAGE,

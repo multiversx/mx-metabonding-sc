@@ -225,7 +225,7 @@ fn claim_ok_first_week_unlocked_test() {
             let total_energy = sc.total_energy_for_week(1, 2).get();
             assert_eq!(total_energy, managed_biguint!(192307692307690));
 
-            let interested_energy = sc.interested_energy_for_week(1, 2).get();
+            let interested_energy = sc.interested_energy_rewards_claimers(1, 2).get();
             assert_eq!(interested_energy, managed_biguint!(348000));
 
             let remaining_energy = sc.remaining_energy_for_week(1, 2).get();
@@ -287,7 +287,7 @@ fn claim_ok_first_week_locked_test() {
             let total_energy = sc.total_energy_for_week(1, 2).get();
             assert_eq!(total_energy, managed_biguint!(192307692307690));
 
-            let interested_energy = sc.interested_energy_for_week(1, 2).get();
+            let interested_energy = sc.interested_energy_rewards_claimers(1, 2).get();
             assert_eq!(interested_energy, managed_biguint!(348000));
 
             let remaining_energy = sc.remaining_energy_for_week(1, 2).get();

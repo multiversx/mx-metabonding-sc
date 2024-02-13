@@ -1,7 +1,7 @@
 use pair::safe_price_view::ProxyTrait as _;
 use router::factory::ProxyTrait as _;
 
-use crate::WEEK_IN_SECONDS;
+use crate::Timestamp;
 
 multiversx_sc::imports!();
 
@@ -15,7 +15,12 @@ pub enum PairQueryResponse<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait PriceQueryModule {
-    fn get_dollar_value(&self, token_id: TokenIdentifier, amount: BigUint) -> BigUint {
+    fn get_dollar_value(
+        &self,
+        token_id: TokenIdentifier,
+        amount: BigUint,
+        price_timestamp: Timestamp,
+    ) -> BigUint {
         let pair_query_response = self.get_pair_to_query(token_id.clone());
         match pair_query_response {
             PairQueryResponse::WegldIntermediary {
@@ -23,12 +28,22 @@ pub trait PriceQueryModule {
                 wegld_to_usdc_pair,
             } => {
                 let wegld_token_id = self.wegld_token_id().get();
-                let wegld_price = self.call_get_safe_price(token_to_wegld_pair, token_id, amount);
+                let wegld_price = self.call_get_safe_price(
+                    token_to_wegld_pair,
+                    token_id,
+                    amount,
+                    price_timestamp,
+                );
 
-                self.call_get_safe_price(wegld_to_usdc_pair, wegld_token_id, wegld_price)
+                self.call_get_safe_price(
+                    wegld_to_usdc_pair,
+                    wegld_token_id,
+                    wegld_price,
+                    price_timestamp,
+                )
             }
             PairQueryResponse::TokenToUsdc(pair_addr) => {
-                self.call_get_safe_price(pair_addr, token_id, amount)
+                self.call_get_safe_price(pair_addr, token_id, amount, price_timestamp)
             }
         }
     }
@@ -82,12 +97,13 @@ pub trait PriceQueryModule {
         pair_address: ManagedAddress,
         token_id: TokenIdentifier,
         amount: BigUint,
+        price_timestamp: Timestamp,
     ) -> BigUint {
         let input_payment = EsdtTokenPayment::new(token_id, 0, amount);
         let safe_price_pair = self.safe_price_pair().get();
         let price_payment: EsdtTokenPayment = self
             .pair_proxy(safe_price_pair)
-            .get_safe_price_by_timestamp_offset(pair_address, WEEK_IN_SECONDS, input_payment)
+            .get_safe_price_by_timestamp_offset(pair_address, price_timestamp, input_payment)
             .execute_on_dest_context();
 
         price_payment.amount
