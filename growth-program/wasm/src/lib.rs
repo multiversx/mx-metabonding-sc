@@ -32,7 +32,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setMinEnergyPerRewardDollar => set_min_energy_per_reward_dollar
         setEnergyPerRewardDollarForWeek => set_energy_per_reward_dollar_for_week
         setAlpha => set_alpha
-        setTotalEnergyForWeek => set_total_energy_for_week
+        setBeta => set_beta
         claimRewards => claim_rewards
         updateRewards => update_rewards_endpoint
         changeSigner => change_signer
