@@ -72,13 +72,16 @@ pub trait CommonRewardsModule: week_timekeeping::WeekTimekeepingModule {
     #[storage_mapper("minWeeklyRewardsValue")]
     fn min_weekly_rewards_value(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getRewardsInfo)]
     #[storage_mapper("rewardsInfo")]
     fn rewards_info(&self, project_id: ProjectId) -> SingleValueMapper<RewardsInfo<Self::Api>>;
 
+    #[view(getRewardsTotalAmount)]
     #[storage_mapper("rewardsTotalAmount")]
     fn rewards_total_amount(&self, project_id: ProjectId, week: Week)
         -> SingleValueMapper<BigUint>;
 
+    #[view(getRewardsRemainingAmount)]
     #[storage_mapper("rewardsRemainingAmount")]
     fn rewards_remaining_amount(
         &self,

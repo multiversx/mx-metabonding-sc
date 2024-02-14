@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-136-g99c9bec"
+            "gitVersion": "v1.0.2-141-gb83ee58"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -290,6 +290,49 @@
             ]
         },
         {
+            "name": "getExemptedParticipants",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "week",
+                    "type": "u32"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<Address>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getUserClaimed",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "user_address",
+                    "type": "Address"
+                },
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "week",
+                    "type": "u32"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
             "name": "updateRewards",
             "mutability": "mutable",
             "inputs": [
@@ -304,6 +347,59 @@
                 }
             ],
             "outputs": []
+        },
+        {
+            "name": "getRewardsInfo",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "RewardsInfo"
+                }
+            ]
+        },
+        {
+            "name": "getRewardsTotalAmount",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "week",
+                    "type": "u32"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getRewardsRemainingAmount",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "week",
+                    "type": "u32"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
         },
         {
             "name": "changeSigner",
@@ -421,6 +517,27 @@
                 {
                     "name": "TwoWeeks",
                     "discriminant": 2
+                }
+            ]
+        },
+        "RewardsInfo": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "reward_token_id",
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "name": "undistributed_rewards",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "start_week",
+                    "type": "u32"
+                },
+                {
+                    "name": "end_week",
+                    "type": "u32"
                 }
             ]
         }
