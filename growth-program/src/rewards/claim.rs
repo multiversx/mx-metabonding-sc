@@ -144,7 +144,11 @@ pub trait ClaimRewardsModule:
         project_id: ProjectId,
         week: Week,
     ) -> bool {
-        let user_id = self.user_ids().get_id_non_zero(&user_address);
+        let user_id = self.user_ids().get_id(&user_address);
+        if user_id == 0 {
+            return false;
+        }
+
         self.user_claimed(project_id, week).contains(&user_id)
     }
 
