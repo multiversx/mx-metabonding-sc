@@ -120,6 +120,34 @@ pub trait ClaimRewardsModule:
         OptionalValue::Some(output_payment)
     }
 
+    #[view(getExemptedParticipants)]
+    fn get_exempted_participants(
+        &self,
+        project_id: ProjectId,
+        week: Week,
+    ) -> MultiValueEncoded<ManagedAddress> {
+        let id_mapper = self.user_ids();
+        let mut results = MultiValueEncoded::new();
+        for user_id in self.exempted_participants(project_id, week).iter() {
+            let opt_user_address = id_mapper.get_address(user_id);
+            let user_address = unsafe { opt_user_address.unwrap_unchecked() };
+            results.push(user_address);
+        }
+
+        results
+    }
+
+    #[view(getUserClaimed)]
+    fn get_user_claimed(
+        &self,
+        user_address: ManagedAddress,
+        project_id: ProjectId,
+        week: Week,
+    ) -> bool {
+        let user_id = self.user_ids().get_id_non_zero(&user_address);
+        self.user_claimed(project_id, week).contains(&user_id)
+    }
+
     fn adjust_energy_to_lock_option(&self, amount: BigUint, lock_option: LockOption) -> BigUint {
         match lock_option {
             LockOption::None => amount * NONE_PERCENTAGE / MAX_PERCENTAGE,

@@ -2,6 +2,7 @@
   "bigIntAbs",
   "bigIntAdd",
   "bigIntCmp",
+  "bigIntFinishUnsigned",
   "bigIntGetUnsignedArgument",
   "bigIntMul",
   "bigIntPow",
