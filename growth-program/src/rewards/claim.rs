@@ -145,7 +145,7 @@ pub trait ClaimRewardsModule:
         week: Week,
     ) -> bool {
         let user_id = self.user_ids().get_id(&user_address);
-        if user_id == 0 {
+        if user_id == NULL_ID {
             return false;
         }
 
