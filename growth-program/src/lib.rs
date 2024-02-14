@@ -9,8 +9,11 @@ pub mod project;
 pub mod rewards;
 pub mod validation;
 
+pub type Timestamp = u64;
+
 pub const MAX_PERCENTAGE: u32 = 100_000;
-pub const WEEK_IN_SECONDS: u64 = 7 * 24 * 60 * 60;
+pub const DAY_IN_SECONDS: Timestamp = 24 * 60 * 60;
+pub const WEEK_IN_SECONDS: Timestamp = 7 * DAY_IN_SECONDS;
 pub const PRECISION: u64 = 1_000_000_000_000_000_000;
 
 pub const DEFAULT_MIN_REWARDS_PERIOD: Week = 26;
@@ -35,12 +38,14 @@ pub trait GrowthProgram:
     /// Arguments:
     /// min_energy_per_reward_dollar: Scaled to PRECISION const.
     /// alpha: Percentage, scaled to MAX_PERCENTAGE const.
+    /// beta: Percentage, scaled to MAX_PERCENTAGE const.
     /// signer: Public key of the signer, used to verify user claims
     #[init]
     fn init(
         &self,
         min_energy_per_reward_dollar: BigUint,
         alpha: BigUint,
+        beta: BigUint,
         signer: ManagedAddress,
         router_address: ManagedAddress,
         safe_price_pair: ManagedAddress,
@@ -64,6 +69,7 @@ pub trait GrowthProgram:
         self.set_energy_factory_address(energy_factory_address);
         self.set_min_energy_per_reward_dollar(min_energy_per_reward_dollar);
         self.set_alpha(alpha);
+        self.set_beta(beta);
         self.change_signer(signer);
 
         self.min_rewards_period().set(DEFAULT_MIN_REWARDS_PERIOD);

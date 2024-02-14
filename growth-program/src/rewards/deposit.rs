@@ -1,6 +1,6 @@
 use week_timekeeping::Week;
 
-use crate::{project::ProjectId, rewards::common_rewards::RewardsInfo};
+use crate::{project::ProjectId, rewards::common_rewards::RewardsInfo, WEEK_IN_SECONDS};
 
 multiversx_sc::imports!();
 
@@ -55,7 +55,8 @@ pub trait DepositRewardsModule:
 
         let (token_id, amount) = self.call_value().single_fungible_esdt();
         let rewards_per_week = &amount / week_diff as u32;
-        let dollar_value = self.get_dollar_value(token_id.clone(), rewards_per_week.clone());
+        let dollar_value =
+            self.get_dollar_value(token_id.clone(), rewards_per_week.clone(), WEEK_IN_SECONDS);
         let min_weekly_rewards_value = self.min_weekly_rewards_value().get();
         require!(dollar_value >= min_weekly_rewards_value, "Too few rewards");
 
@@ -119,7 +120,8 @@ pub trait DepositRewardsModule:
 
         let week_diff = end_week - start_week;
         let rewards_per_week = &amount / week_diff as u32;
-        let dollar_value = self.get_dollar_value(token_id.clone(), rewards_per_week.clone());
+        let dollar_value =
+            self.get_dollar_value(token_id.clone(), rewards_per_week.clone(), WEEK_IN_SECONDS);
         let min_weekly_rewards_value = self.min_weekly_rewards_value().get();
         require!(dollar_value >= min_weekly_rewards_value, "Too few rewards");
 

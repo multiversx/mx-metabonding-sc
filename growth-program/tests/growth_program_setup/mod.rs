@@ -307,6 +307,7 @@ where
                 sc.init(
                     managed_biguint!(10) * PRECISION,
                     managed_biguint!(25) * MAX_PERCENTAGE / 100u32, // 25%
+                    managed_biguint!(25) * MAX_PERCENTAGE / 100u32, // 25%
                     signer_addr,
                     managed_address!(router_wrapper.address_ref()),
                     managed_address!(pair_wrapper.address_ref()),
@@ -416,9 +417,9 @@ where
             .execute_tx(user, &self.gp_wrapper, &rust_biguint!(0), |sc| {
                 let _ = sc.claim_rewards(
                     project_id,
-                    lock_option,
                     managed_biguint!(min_rewards),
                     ManagedByteArray::new_from_bytes(signature),
+                    OptionalValue::Some(lock_option),
                 );
             })
     }
