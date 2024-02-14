@@ -89,3 +89,4 @@ pub trait GrowthProgram:
     #[endpoint]
     fn upgrade(&self) {}
 }
+
