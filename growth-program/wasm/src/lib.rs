@@ -29,8 +29,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         depositAdditionalRewards => deposit_additional_rewards
         ownerWithdrawRewards => owner_withdraw_rewards
         finishProgram => finish_program
-        setMinEnergyPerRewardDollar => set_min_energy_per_reward_dollar
-        setEnergyPerRewardDollarForWeek => set_energy_per_reward_dollar_for_week
+        setMinRewardDollarsPerEnergy => set_min_reward_dollars_per_energy
+        setNextWeekRewardDollarsPerEnergy => set_next_week_reward_dollars_per_energy
         setAlpha => set_alpha
         setBeta => set_beta
         claimRewards => claim_rewards

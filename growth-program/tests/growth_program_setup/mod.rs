@@ -4,7 +4,7 @@ use energy_factory::SimpleLockEnergy;
 use growth_program::{
     project::{ProjectId, ProjectsModule},
     rewards::{
-        claim::{ClaimRewardsModule, LockOption},
+        claim::{ClaimRewardsModule, ClaimType, LockOption},
         deposit::DepositRewardsModule,
         week_timekeeping::{Epoch, MONDAY_19_02_2024_GMT_TIMESTAMP},
     },
@@ -426,7 +426,7 @@ where
                     project_id,
                     managed_biguint!(min_rewards),
                     ManagedByteArray::new_from_bytes(signature),
-                    OptionalValue::Some(lock_option),
+                    ClaimType::Rewards(lock_option),
                 );
             })
     }

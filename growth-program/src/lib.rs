@@ -12,6 +12,7 @@ pub mod validation;
 pub type Timestamp = u64;
 
 pub const MAX_PERCENTAGE: u32 = 100_000;
+pub const HOUR_IN_SECONDS: Timestamp = 60 * 60;
 pub const DAY_IN_SECONDS: Timestamp = 24 * 60 * 60;
 pub const WEEK_IN_SECONDS: Timestamp = 7 * DAY_IN_SECONDS;
 pub const PRECISION: u64 = 1_000_000_000_000_000_000;
@@ -36,14 +37,14 @@ pub trait GrowthProgram:
     + multiversx_sc_modules::pause::PauseModule
 {
     /// Arguments:
-    /// min_energy_per_reward_dollar: Scaled to PRECISION const.
+    /// min_reward_dollars_per_energy: Scaled to PRECISION const.
     /// alpha: Percentage, scaled to MAX_PERCENTAGE const.
     /// beta: Percentage, scaled to MAX_PERCENTAGE const.
     /// signer: Public key of the signer, used to verify user claims
     #[init]
     fn init(
         &self,
-        min_energy_per_reward_dollar: BigUint,
+        min_reward_dollars_per_energy: BigUint,
         alpha: BigUint,
         beta: BigUint,
         signer: ManagedAddress,
@@ -67,7 +68,7 @@ pub trait GrowthProgram:
         self.wegld_token_id().set(wegld_token_id);
 
         self.set_energy_factory_address(energy_factory_address);
-        self.set_min_energy_per_reward_dollar(min_energy_per_reward_dollar);
+        self.set_min_reward_dollars_per_energy(min_reward_dollars_per_energy);
         self.set_alpha(alpha);
         self.set_beta(beta);
         self.change_signer(signer);

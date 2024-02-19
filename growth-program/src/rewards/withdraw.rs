@@ -24,7 +24,7 @@ pub trait WithdrawRewardsModule:
             "Cannot withdraw anymore"
         );
         require!(
-            start_week > rewards_info.start_week,
+            start_week > rewards_info.last_update_week,
             INVALID_START_WEEK_ERR_MSG
         );
         require!(
@@ -43,11 +43,12 @@ pub trait WithdrawRewardsModule:
             self.rewards_total_amount(project_id, week).clear();
         }
 
-        let caller = self.blockchain().get_caller();
+        let project_owner = self.project_owner(project_id).get();
         let payment = EsdtTokenPayment::new(rewards_info.reward_token_id.clone(), 0, total_amount);
-        self.send().direct_non_zero_esdt_payment(&caller, &payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&project_owner, &payment);
 
-        if start_week == rewards_info.start_week {
+        if start_week == rewards_info.last_update_week {
             info_mapper.clear();
         } else {
             rewards_info.end_week = start_week;
