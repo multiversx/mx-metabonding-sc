@@ -1,4 +1,4 @@
-use week_timekeeping::Week;
+use super::week_timekeeping::Week;
 
 use crate::{project::ProjectId, rewards::common_rewards::RewardsInfo, WEEK_IN_SECONDS};
 
@@ -12,7 +12,7 @@ pub trait DepositRewardsModule:
     + crate::price_query::PriceQueryModule
     + super::common_rewards::CommonRewardsModule
     + super::energy::EnergyModule
-    + week_timekeeping::WeekTimekeepingModule
+    + super::week_timekeeping::WeekTimekeepingModule
     + multiversx_sc_modules::pause::PauseModule
 {
     #[only_owner]

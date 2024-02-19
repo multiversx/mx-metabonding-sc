@@ -1,6 +1,4 @@
-use week_timekeeping::Week;
-
-use crate::project::ProjectId;
+use crate::{project::ProjectId, rewards::week_timekeeping::Week};
 
 multiversx_sc::imports!();
 

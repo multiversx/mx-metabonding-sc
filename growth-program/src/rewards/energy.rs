@@ -1,4 +1,4 @@
-use week_timekeeping::Week;
+use super::week_timekeeping::Week;
 
 use crate::{project::ProjectId, DAY_IN_SECONDS, MAX_PERCENTAGE, PRECISION, WEEK_IN_SECONDS};
 
@@ -10,7 +10,7 @@ pub trait EnergyModule:
     super::common_rewards::CommonRewardsModule
     + crate::price_query::PriceQueryModule
     + crate::project::ProjectsModule
-    + week_timekeeping::WeekTimekeepingModule
+    + super::week_timekeeping::WeekTimekeepingModule
 {
     #[only_owner]
     #[endpoint(setMinEnergyPerRewardDollar)]

@@ -1,4 +1,4 @@
-use week_timekeeping::Week;
+use super::week_timekeeping::Week;
 
 use crate::project::ProjectId;
 
@@ -14,7 +14,7 @@ pub struct RewardsInfo<M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::module]
-pub trait CommonRewardsModule: week_timekeeping::WeekTimekeepingModule {
+pub trait CommonRewardsModule: super::week_timekeeping::WeekTimekeepingModule {
     #[endpoint(updateRewards)]
     fn update_rewards_endpoint(
         &self,

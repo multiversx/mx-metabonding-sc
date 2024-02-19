@@ -1,4 +1,4 @@
-use week_timekeeping::Week;
+use super::week_timekeeping::Week;
 
 use crate::{project::ProjectId, rewards::deposit::INVALID_START_WEEK_ERR_MSG};
 
@@ -8,7 +8,7 @@ multiversx_sc::imports!();
 pub trait WithdrawRewardsModule:
     super::common_rewards::CommonRewardsModule
     + crate::project::ProjectsModule
-    + week_timekeeping::WeekTimekeepingModule
+    + super::week_timekeeping::WeekTimekeepingModule
     + multiversx_sc_modules::pause::PauseModule
 {
     #[only_owner]

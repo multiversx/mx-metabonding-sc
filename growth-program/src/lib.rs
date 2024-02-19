@@ -1,6 +1,6 @@
 #![no_std]
 
-use week_timekeeping::Week;
+use rewards::week_timekeeping::Week;
 
 multiversx_sc::imports!();
 
@@ -30,7 +30,7 @@ pub trait GrowthProgram:
     + rewards::common_rewards::CommonRewardsModule
     + price_query::PriceQueryModule
     + validation::ValidationModule
-    + week_timekeeping::WeekTimekeepingModule
+    + rewards::week_timekeeping::WeekTimekeepingModule
     + utils::UtilsModule
     + energy_query::EnergyQueryModule
     + multiversx_sc_modules::pause::PauseModule
@@ -79,9 +79,6 @@ pub trait GrowthProgram:
                 * BigUint::from(10u32).pow(USDC_DECIMALS);
         self.min_weekly_rewards_value()
             .set(default_min_weekly_rewards_value);
-
-        let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set(current_epoch);
 
         self.set_paused(true);
     }

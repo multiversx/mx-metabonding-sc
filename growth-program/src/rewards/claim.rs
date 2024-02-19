@@ -1,4 +1,4 @@
-use week_timekeeping::{Epoch, Week, EPOCHS_IN_WEEK};
+use super::week_timekeeping::{Epoch, Week};
 
 use crate::{project::ProjectId, validation::Signature, MAX_PERCENTAGE};
 
@@ -26,13 +26,14 @@ pub const NONE_PERCENTAGE: u32 = 25 * MAX_PERCENTAGE / 100; // 25%
 pub const ONE_WEEK_PERCENTAGE: u32 = 50 * MAX_PERCENTAGE / 100; // 50%
 pub const TWO_WEEKS_PERCENTAGE: u32 = 100 * MAX_PERCENTAGE / 100; // 100%
 
+pub const EPOCHS_IN_WEEK: Epoch = 7;
 pub const NO_LOCK_PERIOD: Epoch = 0;
 pub const ONE_WEEK_LOCK_PERIOD: Epoch = EPOCHS_IN_WEEK;
 pub const TWO_WEEKS_LOCK_PERIOD: Epoch = 2 * EPOCHS_IN_WEEK;
 
 #[multiversx_sc::module]
 pub trait ClaimRewardsModule:
-    week_timekeeping::WeekTimekeepingModule
+    super::week_timekeeping::WeekTimekeepingModule
     + crate::price_query::PriceQueryModule
     + crate::project::ProjectsModule
     + super::energy::EnergyModule

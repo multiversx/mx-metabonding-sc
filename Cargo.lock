@@ -729,7 +729,6 @@ dependencies = [
  "router-mock",
  "simple-lock",
  "utils",
- "week-timekeeping",
 ]
 
 [[package]]
