@@ -1,6 +1,6 @@
 #![no_std]
 
-use rewards::week_timekeeping::Week;
+use rewards::week_timekeeping::{Week, MONDAY_19_02_2024_GMT_TIMESTAMP};
 
 multiversx_sc::imports!();
 
@@ -79,6 +79,13 @@ pub trait GrowthProgram:
                 * BigUint::from(10u32).pow(USDC_DECIMALS);
         self.min_weekly_rewards_value()
             .set(default_min_weekly_rewards_value);
+
+        let current_timestamp = self.blockchain().get_block_timestamp();
+        let first_week_start_timestamp = MONDAY_19_02_2024_GMT_TIMESTAMP
+            + (current_timestamp - MONDAY_19_02_2024_GMT_TIMESTAMP) / WEEK_IN_SECONDS
+                * WEEK_IN_SECONDS;
+        self.first_week_start_timestamp()
+            .set(first_week_start_timestamp);
 
         self.set_paused(true);
     }

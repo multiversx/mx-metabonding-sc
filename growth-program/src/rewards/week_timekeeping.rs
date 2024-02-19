@@ -11,11 +11,6 @@ pub type Epoch = u64;
 
 #[multiversx_sc::module]
 pub trait WeekTimekeepingModule {
-    #[view(getFirstWeekStartTimestamp)]
-    fn get_first_week_start_timestamp(&self) -> Timestamp {
-        MONDAY_19_02_2024_GMT_TIMESTAMP
-    }
-
     /// Week starts from 1
     #[view(getCurrentWeek)]
     fn get_current_week(&self) -> Week {
@@ -24,7 +19,7 @@ pub trait WeekTimekeepingModule {
     }
 
     fn get_week_for_timestamp(&self, timestamp: Timestamp) -> Week {
-        let first_week_start_timestamp = MONDAY_19_02_2024_GMT_TIMESTAMP;
+        let first_week_start_timestamp = self.first_week_start_timestamp().get();
         require!(
             timestamp >= first_week_start_timestamp,
             INVALID_WEEK_ERR_MSG
@@ -40,4 +35,8 @@ pub trait WeekTimekeepingModule {
             zero_based_week + 1
         }
     }
+
+    #[view(getFirstWeekStartTimestamp)]
+    #[storage_mapper("firstWeekStartTimestamp")]
+    fn first_week_start_timestamp(&self) -> SingleValueMapper<u64>;
 }

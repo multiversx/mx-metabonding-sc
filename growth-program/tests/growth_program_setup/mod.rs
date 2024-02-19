@@ -294,6 +294,8 @@ where
             )
             .assert_ok();
 
+        b_mock.set_block_timestamp(MONDAY_19_02_2024_GMT_TIMESTAMP);
+
         // Growth Program SC init
 
         let gp_wrapper = b_mock.create_sc_account(
@@ -322,8 +324,6 @@ where
                 sc.set_paused(false);
             })
             .assert_ok();
-
-        b_mock.set_block_timestamp(MONDAY_19_02_2024_GMT_TIMESTAMP);
 
         GrowthProgramSetup {
             b_mock,

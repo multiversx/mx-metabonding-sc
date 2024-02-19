@@ -41,8 +41,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getRewardsTotalAmount => rewards_total_amount
         getRewardsRemainingAmount => rewards_remaining_amount
         changeSigner => change_signer
-        getFirstWeekStartTimestamp => get_first_week_start_timestamp
         getCurrentWeek => get_current_week
+        getFirstWeekStartTimestamp => first_week_start_timestamp
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
         pause => pause_endpoint
