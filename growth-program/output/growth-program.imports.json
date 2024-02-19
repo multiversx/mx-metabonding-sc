@@ -15,6 +15,7 @@
   "cleanReturnData",
   "getArgumentLength",
   "getBlockEpoch",
+  "getBlockTimestamp",
   "getGasLeft",
   "getNumArguments",
   "isSmartContract",

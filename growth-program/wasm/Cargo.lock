@@ -125,7 +125,6 @@ dependencies = [
  "router",
  "simple-lock",
  "utils",
- "week-timekeeping",
 ]
 
 [[package]]

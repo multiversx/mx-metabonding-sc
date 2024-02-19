@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-141-gb83ee58"
+            "gitVersion": "v1.0.2-145-gc61b5cb"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -414,6 +414,16 @@
             "outputs": []
         },
         {
+            "name": "getFirstWeekStartTimestamp",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
             "docs": [
                 "Week starts from 1"
             ],
@@ -423,16 +433,6 @@
             "outputs": [
                 {
                     "type": "u32"
-                }
-            ]
-        },
-        {
-            "name": "getFirstWeekStartEpoch",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "u64"
                 }
             ]
         },
