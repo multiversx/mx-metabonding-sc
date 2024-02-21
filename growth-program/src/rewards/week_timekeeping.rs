@@ -38,5 +38,5 @@ pub trait WeekTimekeepingModule {
 
     #[view(getFirstWeekStartTimestamp)]
     #[storage_mapper("firstWeekStartTimestamp")]
-    fn first_week_start_timestamp(&self) -> SingleValueMapper<u64>;
+    fn first_week_start_timestamp(&self) -> SingleValueMapper<Timestamp>;
 }
