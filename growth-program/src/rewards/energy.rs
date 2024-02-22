@@ -40,6 +40,16 @@ pub trait EnergyModule:
         self.beta().set(beta);
     }
 
+    #[view(getTotalEnergyForCurrentWeek)]
+    fn get_total_energy_for_current_week_view(&self, project_id: ProjectId) -> BigUint {
+        let current_week = self.get_current_week();
+        let total_energy = self.total_energy_for_week(project_id, current_week).get();
+        require!(total_energy > 0, "No value set");
+
+        total_energy
+    }
+
+    #[endpoint(setTotalEnergyForCurrentWeek)]
     fn get_total_energy_for_current_week(&self, project_id: ProjectId) -> BigUint {
         let current_week = self.get_current_week();
         let mapper = self.total_energy_for_week(project_id, current_week);

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           28
+// Endpoints:                           30
 // Async Callback (empty):               1
-// Total number of exported functions:  30
+// Total number of exported functions:  32
 
 #![no_std]
 #![allow(internal_features)]
@@ -33,6 +33,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         setNextWeekRewardDollarsPerEnergy => set_next_week_reward_dollars_per_energy
         setAlpha => set_alpha
         setBeta => set_beta
+        getTotalEnergyForCurrentWeek => get_total_energy_for_current_week_view
+        setTotalEnergyForCurrentWeek => get_total_energy_for_current_week
         claimRewards => claim_rewards
         getExemptedParticipants => get_exempted_participants
         getUserClaimed => get_user_claimed
