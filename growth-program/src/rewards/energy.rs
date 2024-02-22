@@ -41,21 +41,23 @@ pub trait EnergyModule:
     }
 
     #[endpoint(setTotalEnergyForCurrentWeek)]
-    fn set_total_energy_for_current_week(&self, project_id: ProjectId) -> BigUint {
+    fn set_total_energy_for_current_week(&self, project_ids: MultiValueEncoded<ProjectId>) {
         let caller = self.blockchain().get_caller();
         let own_sc_address = self.blockchain().get_sc_address();
         require!(caller != own_sc_address, "Must call this as endpoint");
 
-        self.get_total_energy_for_current_week(project_id)
+        for project_id in project_ids {
+            self.require_valid_project_id(project_id);
+
+            let _ = self.get_total_energy_for_current_week(project_id);
+        }
     }
 
     #[view(getTotalEnergyForCurrentWeek)]
     fn get_total_energy_for_current_week_view(&self, project_id: ProjectId) -> BigUint {
-        let current_week = self.get_current_week();
-        let total_energy = self.total_energy_for_week(project_id, current_week).get();
-        require!(total_energy > 0, "No value set");
+        self.require_valid_project_id(project_id);
 
-        total_energy
+        self.get_total_energy_for_current_week(project_id)
     }
 
     fn get_total_energy_for_current_week(&self, project_id: ProjectId) -> BigUint {
