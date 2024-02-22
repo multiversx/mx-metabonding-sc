@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-149-g3c3d632"
+            "gitVersion": "v1.0.2-150-g4fd3eb0"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -261,8 +261,8 @@
             "outputs": []
         },
         {
-            "name": "getTotalEnergyForCurrentWeek",
-            "mutability": "readonly",
+            "name": "setTotalEnergyForCurrentWeek",
+            "mutability": "mutable",
             "inputs": [
                 {
                     "name": "project_id",
@@ -276,8 +276,8 @@
             ]
         },
         {
-            "name": "setTotalEnergyForCurrentWeek",
-            "mutability": "mutable",
+            "name": "getTotalEnergyForCurrentWeek",
+            "mutability": "readonly",
             "inputs": [
                 {
                     "name": "project_id",

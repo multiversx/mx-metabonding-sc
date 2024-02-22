@@ -33,8 +33,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         setNextWeekRewardDollarsPerEnergy => set_next_week_reward_dollars_per_energy
         setAlpha => set_alpha
         setBeta => set_beta
+        setTotalEnergyForCurrentWeek => set_total_energy_for_current_week
         getTotalEnergyForCurrentWeek => get_total_energy_for_current_week_view
-        setTotalEnergyForCurrentWeek => get_total_energy_for_current_week
         claimRewards => claim_rewards
         getExemptedParticipants => get_exempted_participants
         getUserClaimed => get_user_claimed

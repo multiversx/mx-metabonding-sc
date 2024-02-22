@@ -40,6 +40,15 @@ pub trait EnergyModule:
         self.beta().set(beta);
     }
 
+    #[endpoint(setTotalEnergyForCurrentWeek)]
+    fn set_total_energy_for_current_week(&self, project_id: ProjectId) -> BigUint {
+        let caller = self.blockchain().get_caller();
+        let own_sc_address = self.blockchain().get_sc_address();
+        require!(caller != own_sc_address, "Must call this as endpoint");
+
+        self.get_total_energy_for_current_week(project_id)
+    }
+
     #[view(getTotalEnergyForCurrentWeek)]
     fn get_total_energy_for_current_week_view(&self, project_id: ProjectId) -> BigUint {
         let current_week = self.get_current_week();
@@ -49,7 +58,6 @@ pub trait EnergyModule:
         total_energy
     }
 
-    #[endpoint(setTotalEnergyForCurrentWeek)]
     fn get_total_energy_for_current_week(&self, project_id: ProjectId) -> BigUint {
         let current_week = self.get_current_week();
         let mapper = self.total_energy_for_week(project_id, current_week);
