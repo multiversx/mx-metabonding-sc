@@ -42,10 +42,6 @@ pub trait EnergyModule:
 
     #[endpoint(setTotalEnergyForCurrentWeek)]
     fn set_total_energy_for_current_week(&self, project_ids: MultiValueEncoded<ProjectId>) {
-        let caller = self.blockchain().get_caller();
-        let own_sc_address = self.blockchain().get_sc_address();
-        require!(caller != own_sc_address, "Must call this as endpoint");
-
         for project_id in project_ids {
             self.require_valid_project_id(project_id);
 
