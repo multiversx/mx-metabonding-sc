@@ -4,6 +4,7 @@ use rewards::week_timekeeping::{Week, MONDAY_19_02_2024_GMT_TIMESTAMP};
 
 multiversx_sc::imports!();
 
+pub mod events;
 pub mod price_query;
 pub mod project;
 pub mod rewards;
@@ -32,6 +33,7 @@ pub trait GrowthProgram:
     + price_query::PriceQueryModule
     + validation::ValidationModule
     + rewards::week_timekeeping::WeekTimekeepingModule
+    + events::EventsModule
     + utils::UtilsModule
     + energy_query::EnergyQueryModule
     + multiversx_sc_modules::pause::PauseModule

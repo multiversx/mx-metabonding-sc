@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-152-gdce3a3e"
+            "gitVersion": "v1.0.2-153-g16de6b3"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -509,9 +509,38 @@
             ]
         }
     ],
+    "events": [
+        {
+            "identifier": "claimRewardsEvent",
+            "inputs": [
+                {
+                    "name": "caller",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "claim_data",
+                    "type": "ClaimRewardsEventData"
+                }
+            ]
+        }
+    ],
     "esdtAttributes": [],
     "hasCallback": false,
     "types": {
+        "ClaimRewardsEventData": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "claim_type",
+                    "type": "ClaimType"
+                }
+            ]
+        },
         "ClaimType": {
             "type": "enum",
             "variants": [

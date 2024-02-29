@@ -45,6 +45,7 @@ pub trait ClaimRewardsModule:
     + super::energy::EnergyModule
     + super::common_rewards::CommonRewardsModule
     + crate::validation::ValidationModule
+    + crate::events::EventsModule
     + energy_query::EnergyQueryModule
     + multiversx_sc_modules::pause::PauseModule
 {
@@ -137,7 +138,7 @@ pub trait ClaimRewardsModule:
                 let unlocked_payment =
                     EsdtTokenPayment::new(rewards_info.reward_token_id.clone(), 0, user_rewards);
                 let output_payment = if lock_period > 0 {
-                    self.lock_tokens(unlocked_payment, lock_period, caller)
+                    self.lock_tokens(unlocked_payment, lock_period, caller.clone())
                 } else {
                     self.send()
                         .direct_non_zero_esdt_payment(&caller, &unlocked_payment);
@@ -150,6 +151,13 @@ pub trait ClaimRewardsModule:
         };
 
         info_mapper.set(rewards_info);
+
+        let total_rewards = match &opt_rewards {
+            OptionalValue::Some(payment) => payment.amount.clone(),
+            OptionalValue::None => BigUint::zero(),
+        };
+
+        self.emit_claim_rewards_event(&caller, total_rewards, claim_type);
 
         opt_rewards
     }
