@@ -157,7 +157,7 @@ pub trait ClaimRewardsModule:
             OptionalValue::None => BigUint::zero(),
         };
 
-        self.emit_claim_rewards_event(&caller, total_rewards, claim_type);
+        self.emit_claim_rewards_event(&caller, project_id, total_rewards, claim_type);
 
         opt_rewards
     }
