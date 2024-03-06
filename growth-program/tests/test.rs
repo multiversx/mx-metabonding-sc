@@ -3,7 +3,7 @@
 pub mod growth_program_setup;
 use growth_program::{
     rewards::{
-        claim::LockOption,
+        claim_types::LockOption,
         common_rewards::{CommonRewardsModule, RewardsInfo},
         deposit::DepositRewardsModule,
         energy::EnergyModule,
@@ -11,8 +11,10 @@ use growth_program::{
     DEFAULT_MIN_REWARDS_PERIOD,
 };
 use growth_program_setup::*;
+use multiversx_sc::types::Address;
 use multiversx_sc_scenario::{
-    managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint, DebugApi,
+    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
+    DebugApi,
 };
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -61,7 +63,9 @@ fn deposit_too_few_rewards_test() {
             0,
             &rust_biguint!(10),
             |sc| {
-                sc.deposit_initial_rewards(1, 2, 28, managed_biguint!(1));
+                let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
+
+                sc.deposit_initial_rewards(1, 2, 28, managed_biguint!(1), signer_addr);
             },
         )
         .assert_user_error("Too few rewards");
@@ -90,7 +94,9 @@ fn deposit_wrong_week_amount_test() {
             0,
             &amount,
             |sc| {
-                sc.deposit_initial_rewards(1, 2, 5, managed_biguint!(1));
+                let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
+
+                sc.deposit_initial_rewards(1, 2, 5, managed_biguint!(1), signer_addr);
             },
         )
         .assert_user_error("Too few reward weeks");
@@ -209,7 +215,7 @@ fn claim_ok_first_week_unlocked_test() {
     // advance to week 2
     setup.advance_week();
 
-    let sig_first_user_week_2 = hex_literal::hex!("7f2a309ed332a516c3dff6634bbf9ce42ea57d6cb5acac606010ae47e1180db4f7ecc70d79998eec961bbbc353c49e469233b6c915179795cd07d903969ce905");
+    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
     setup
         .claim(
             &setup.first_user_addr.clone(),
@@ -265,7 +271,7 @@ fn claim_ok_first_week_locked_test() {
     // advance to week 2
     setup.advance_week();
 
-    let sig_first_user_week_2 = hex_literal::hex!("7f2a309ed332a516c3dff6634bbf9ce42ea57d6cb5acac606010ae47e1180db4f7ecc70d79998eec961bbbc353c49e469233b6c915179795cd07d903969ce905");
+    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
     setup
         .claim(
             &setup.first_user_addr.clone(),
@@ -317,7 +323,7 @@ fn claim_too_many_rewards_test() {
     // advance to week 2
     setup.advance_week();
 
-    let sig_first_user_week_2 = hex_literal::hex!("7f2a309ed332a516c3dff6634bbf9ce42ea57d6cb5acac606010ae47e1180db4f7ecc70d79998eec961bbbc353c49e469233b6c915179795cd07d903969ce905");
+    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
     setup
         .claim(
             &setup.first_user_addr.clone(),

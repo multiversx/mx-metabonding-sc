@@ -1,6 +1,10 @@
 use super::week_timekeeping::Week;
 
-use crate::{project::ProjectId, rewards::common_rewards::RewardsInfo, WEEK_IN_SECONDS};
+use crate::{
+    project::{ProjectId, PROJECT_UNPAUSED},
+    rewards::common_rewards::RewardsInfo,
+    WEEK_IN_SECONDS,
+};
 
 multiversx_sc::imports!();
 
@@ -13,6 +17,7 @@ pub trait DepositRewardsModule:
     + super::common_rewards::CommonRewardsModule
     + super::energy::EnergyModule
     + super::week_timekeeping::WeekTimekeepingModule
+    + crate::validation::ValidationModule
     + multiversx_sc_modules::pause::PauseModule
 {
     #[only_owner]
@@ -35,6 +40,7 @@ pub trait DepositRewardsModule:
         start_week: Week,
         end_week: Week,
         initial_rewards_dollar_per_energy: BigUint,
+        signer: ManagedAddress,
     ) {
         self.require_not_paused();
         self.require_valid_project_id(project_id);
@@ -83,6 +89,9 @@ pub trait DepositRewardsModule:
             end_week,
         };
         info_mapper.set(rewards_info);
+
+        self.signer(project_id).set(signer);
+        self.project_active(project_id).set(PROJECT_UNPAUSED);
     }
 
     #[payable("*")]

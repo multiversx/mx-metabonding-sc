@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-154-g37b183a"
+            "gitVersion": "v1.0.2-155-g50e6b6b"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -23,8 +23,7 @@
             "Arguments:",
             "min_reward_dollars_per_energy: Scaled to PRECISION const.",
             "alpha: Percentage, scaled to MAX_PERCENTAGE const.",
-            "beta: Percentage, scaled to MAX_PERCENTAGE const.",
-            "signer: Public key of the signer, used to verify user claims"
+            "beta: Percentage, scaled to MAX_PERCENTAGE const."
         ],
         "inputs": [
             {
@@ -40,10 +39,6 @@
                 "type": "BigUint"
             },
             {
-                "name": "signer",
-                "type": "Address"
-            },
-            {
                 "name": "router_address",
                 "type": "Address"
             },
@@ -57,6 +52,10 @@
             },
             {
                 "name": "simple_lock_address",
+                "type": "Address"
+            },
+            {
+                "name": "fees_collector_address",
                 "type": "Address"
             },
             {
@@ -110,6 +109,43 @@
             "outputs": []
         },
         {
+            "name": "pauseProject",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "unpauseProject",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isProjectActive",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
             "name": "setMinRewardsPeriod",
             "onlyOwner": true,
             "mutability": "mutable",
@@ -155,6 +191,10 @@
                 {
                     "name": "initial_rewards_dollar_per_energy",
                     "type": "BigUint"
+                },
+                {
+                    "name": "signer",
+                    "type": "Address"
                 }
             ],
             "outputs": []
@@ -177,6 +217,18 @@
                 {
                     "name": "end_week",
                     "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setFeesCollectorAddress",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "fees_collector_address",
+                    "type": "Address"
                 }
             ],
             "outputs": []
@@ -300,12 +352,13 @@
                     "type": "BigUint"
                 },
                 {
-                    "name": "signature",
-                    "type": "array64<u8>"
-                },
-                {
                     "name": "claim_type",
                     "type": "ClaimType"
+                },
+                {
+                    "name": "opt_note_and_signature",
+                    "type": "optional<multi<bytes,array64<u8>>>",
+                    "multi_arg": true
                 }
             ],
             "outputs": [
@@ -428,10 +481,33 @@
             ]
         },
         {
+            "name": "getNotesHistory",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<Note>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
             "name": "changeSigner",
-            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
                 {
                     "name": "new_signer",
                     "type": "Address"
@@ -449,6 +525,21 @@
             "outputs": [
                 {
                     "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getTimestampsStartAndEndOfWeek",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "week",
+                    "type": "u32"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "StartEndWeekTimestampPair"
                 }
             ]
         },
@@ -598,6 +689,19 @@
                 }
             ]
         },
+        "Note": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "note_data",
+                    "type": "bytes"
+                },
+                {
+                    "name": "week",
+                    "type": "u32"
+                }
+            ]
+        },
         "RewardsInfo": {
             "type": "struct",
             "fields": [
@@ -620,6 +724,19 @@
                 {
                     "name": "end_week",
                     "type": "u32"
+                }
+            ]
+        },
+        "StartEndWeekTimestampPair": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "start",
+                    "type": "u64"
+                },
+                {
+                    "name": "end",
+                    "type": "u64"
                 }
             ]
         }

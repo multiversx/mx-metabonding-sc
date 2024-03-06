@@ -4,6 +4,15 @@ use crate::{project::ProjectId, rewards::deposit::INVALID_START_WEEK_ERR_MSG};
 
 multiversx_sc::imports!();
 
+mod fees_collector_proxy {
+    #[multiversx_sc::proxy]
+    pub trait FeesCollectorProxy {
+        #[payable("*")]
+        #[endpoint(depositSwapFees)]
+        fn deposit_swap_fees(&self);
+    }
+}
+
 #[multiversx_sc::module]
 pub trait WithdrawRewardsModule:
     super::common_rewards::CommonRewardsModule
@@ -11,6 +20,17 @@ pub trait WithdrawRewardsModule:
     + super::week_timekeeping::WeekTimekeepingModule
     + multiversx_sc_modules::pause::PauseModule
 {
+    #[only_owner]
+    #[endpoint(setFeesCollectorAddress)]
+    fn set_fees_collector_address(&self, fees_collector_address: ManagedAddress) {
+        require!(
+            self.blockchain().is_smart_contract(&fees_collector_address),
+            "Invalid fees collector address"
+        );
+
+        self.fees_collector_address().set(fees_collector_address);
+    }
+
     #[only_owner]
     #[endpoint(ownerWithdrawRewards)]
     fn owner_withdraw_rewards(&self, project_id: ProjectId, start_week: Week) {
@@ -43,10 +63,10 @@ pub trait WithdrawRewardsModule:
             self.rewards_total_amount(project_id, week).clear();
         }
 
-        let project_owner = self.project_owner(project_id).get();
+        let sc_owner = self.blockchain().get_owner_address();
         let payment = EsdtTokenPayment::new(rewards_info.reward_token_id.clone(), 0, total_amount);
         self.send()
-            .direct_non_zero_esdt_payment(&project_owner, &payment);
+            .direct_non_zero_esdt_payment(&sc_owner, &payment);
 
         if start_week == rewards_info.last_update_week {
             info_mapper.clear();
@@ -60,9 +80,6 @@ pub trait WithdrawRewardsModule:
     fn finish_program(&self, project_id: ProjectId) {
         self.require_not_paused();
 
-        let caller = self.blockchain().get_caller();
-        self.require_is_project_owner(&caller, project_id);
-
         let mut rewards_info = self.rewards_info(project_id).take();
         let current_week = self.get_current_week();
         require!(
@@ -72,12 +89,30 @@ pub trait WithdrawRewardsModule:
 
         self.update_rewards(project_id, OptionalValue::None, &mut rewards_info);
 
+        if rewards_info.undistributed_rewards == 0 {
+            return;
+        }
+
         let remaining_rewards = EsdtTokenPayment::new(
             rewards_info.reward_token_id,
             0,
             rewards_info.undistributed_rewards,
         );
-        self.send()
-            .direct_non_zero_esdt_payment(&caller, &remaining_rewards);
+
+        let fees_collector_address = self.fees_collector_address().get();
+        let _: IgnoreValue = self
+            .fees_collector_proxy(fees_collector_address)
+            .deposit_swap_fees()
+            .with_esdt_transfer(remaining_rewards)
+            .execute_on_dest_context();
     }
+
+    #[proxy]
+    fn fees_collector_proxy(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> fees_collector_proxy::Proxy<Self::Api>;
+
+    #[storage_mapper("feesCollectorAddress")]
+    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
 }
