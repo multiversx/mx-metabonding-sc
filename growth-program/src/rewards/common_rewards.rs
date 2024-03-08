@@ -34,6 +34,10 @@ pub trait CommonRewardsModule: super::week_timekeeping::WeekTimekeepingModule {
         rewards_info: &mut RewardsInfo<Self::Api>,
     ) {
         let current_week = self.get_current_week();
+        if rewards_info.start_week > current_week {
+            return;
+        }
+
         if rewards_info.last_update_week >= current_week {
             return;
         }
