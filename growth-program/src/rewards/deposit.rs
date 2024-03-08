@@ -1,4 +1,4 @@
-use week_timekeeping::Week;
+use super::week_timekeeping::Week;
 
 use crate::{project::ProjectId, rewards::common_rewards::RewardsInfo, WEEK_IN_SECONDS};
 
@@ -12,7 +12,7 @@ pub trait DepositRewardsModule:
     + crate::price_query::PriceQueryModule
     + super::common_rewards::CommonRewardsModule
     + super::energy::EnergyModule
-    + week_timekeeping::WeekTimekeepingModule
+    + super::week_timekeeping::WeekTimekeepingModule
     + multiversx_sc_modules::pause::PauseModule
 {
     #[only_owner]
@@ -34,7 +34,7 @@ pub trait DepositRewardsModule:
         project_id: ProjectId,
         start_week: Week,
         end_week: Week,
-        initial_energy_per_rew_dollar: BigUint,
+        initial_rewards_dollar_per_energy: BigUint,
     ) {
         self.require_not_paused();
         self.require_valid_project_id(project_id);
@@ -67,8 +67,8 @@ pub trait DepositRewardsModule:
                 .set(&rewards_per_week);
         }
 
-        self.energy_per_reward_dollar_for_week(project_id, start_week)
-            .set(initial_energy_per_rew_dollar);
+        self.rewards_dollars_per_energy(project_id, start_week)
+            .set(initial_rewards_dollar_per_energy);
 
         let surplus_amount = amount - &rewards_per_week * week_diff as u32;
         let surplus_payment = EsdtTokenPayment::new(token_id.clone(), 0, surplus_amount);
@@ -79,6 +79,7 @@ pub trait DepositRewardsModule:
             reward_token_id: token_id,
             undistributed_rewards: BigUint::zero(),
             start_week,
+            last_update_week: start_week,
             end_week,
         };
         info_mapper.set(rewards_info);
@@ -114,7 +115,10 @@ pub trait DepositRewardsModule:
             rewards_info.end_week >= start_week,
             INVALID_START_WEEK_ERR_MSG
         );
-        require!(end_week >= rewards_info.start_week, "Invalid end week");
+        require!(
+            end_week >= rewards_info.last_update_week,
+            "Invalid end week"
+        );
 
         self.update_rewards(project_id, OptionalValue::None, &mut rewards_info);
 
@@ -137,7 +141,7 @@ pub trait DepositRewardsModule:
         self.send()
             .direct_non_zero_esdt_payment(&caller, &surplus_payment);
 
-        rewards_info.start_week = core::cmp::min(rewards_info.start_week, start_week);
+        rewards_info.last_update_week = core::cmp::min(rewards_info.last_update_week, start_week);
         rewards_info.end_week = core::cmp::max(rewards_info.end_week, end_week);
 
         info_mapper.set(rewards_info);

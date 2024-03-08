@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-141-gb83ee58"
+            "gitVersion": "v1.0.2-154-g37b183a"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -21,14 +21,14 @@
     "constructor": {
         "docs": [
             "Arguments:",
-            "min_energy_per_reward_dollar: Scaled to PRECISION const.",
+            "min_reward_dollars_per_energy: Scaled to PRECISION const.",
             "alpha: Percentage, scaled to MAX_PERCENTAGE const.",
             "beta: Percentage, scaled to MAX_PERCENTAGE const.",
             "signer: Public key of the signer, used to verify user claims"
         ],
         "inputs": [
             {
-                "name": "min_energy_per_reward_dollar",
+                "name": "min_reward_dollars_per_energy",
                 "type": "BigUint"
             },
             {
@@ -153,7 +153,7 @@
                     "type": "u32"
                 },
                 {
-                    "name": "initial_energy_per_rew_dollar",
+                    "name": "initial_rewards_dollar_per_energy",
                     "type": "BigUint"
                 }
             ],
@@ -209,7 +209,7 @@
             "outputs": []
         },
         {
-            "name": "setMinEnergyPerRewardDollar",
+            "name": "setMinRewardDollarsPerEnergy",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -221,7 +221,7 @@
             "outputs": []
         },
         {
-            "name": "setEnergyPerRewardDollarForWeek",
+            "name": "setNextWeekRewardDollarsPerEnergy",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -261,6 +261,33 @@
             "outputs": []
         },
         {
+            "name": "setTotalEnergyForCurrentWeek",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_ids",
+                    "type": "variadic<u32>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getTotalEnergyForCurrentWeek",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
             "name": "claimRewards",
             "mutability": "mutable",
             "inputs": [
@@ -277,9 +304,8 @@
                     "type": "array64<u8>"
                 },
                 {
-                    "name": "opt_lock_option",
-                    "type": "optional<LockOption>",
-                    "multi_arg": true
+                    "name": "claim_type",
+                    "type": "ClaimType"
                 }
             ],
             "outputs": [
@@ -427,7 +453,7 @@
             ]
         },
         {
-            "name": "getFirstWeekStartEpoch",
+            "name": "getFirstWeekStartTimestamp",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -483,9 +509,61 @@
             ]
         }
     ],
+    "events": [
+        {
+            "identifier": "claimRewardsEvent",
+            "inputs": [
+                {
+                    "name": "caller",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "claim_data",
+                    "type": "ClaimRewardsEventData"
+                }
+            ]
+        }
+    ],
     "esdtAttributes": [],
     "hasCallback": false,
     "types": {
+        "ClaimRewardsEventData": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "project_id",
+                    "type": "u32"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "claim_type",
+                    "type": "ClaimType"
+                }
+            ]
+        },
+        "ClaimType": {
+            "type": "enum",
+            "variants": [
+                {
+                    "name": "Exemption",
+                    "discriminant": 0
+                },
+                {
+                    "name": "Rewards",
+                    "discriminant": 1,
+                    "fields": [
+                        {
+                            "name": "0",
+                            "type": "LockOption"
+                        }
+                    ]
+                }
+            ]
+        },
         "EsdtTokenPayment": {
             "type": "struct",
             "fields": [
@@ -533,6 +611,10 @@
                 },
                 {
                     "name": "start_week",
+                    "type": "u32"
+                },
+                {
+                    "name": "last_update_week",
                     "type": "u32"
                 },
                 {

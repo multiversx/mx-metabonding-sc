@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           28
+// Endpoints:                           30
 // Async Callback (empty):               1
-// Total number of exported functions:  30
+// Total number of exported functions:  32
 
 #![no_std]
 #![allow(internal_features)]
@@ -29,10 +29,12 @@ multiversx_sc_wasm_adapter::endpoints! {
         depositAdditionalRewards => deposit_additional_rewards
         ownerWithdrawRewards => owner_withdraw_rewards
         finishProgram => finish_program
-        setMinEnergyPerRewardDollar => set_min_energy_per_reward_dollar
-        setEnergyPerRewardDollarForWeek => set_energy_per_reward_dollar_for_week
+        setMinRewardDollarsPerEnergy => set_min_reward_dollars_per_energy
+        setNextWeekRewardDollarsPerEnergy => set_next_week_reward_dollars_per_energy
         setAlpha => set_alpha
         setBeta => set_beta
+        setTotalEnergyForCurrentWeek => set_total_energy_for_current_week
+        getTotalEnergyForCurrentWeek => get_total_energy_for_current_week_view
         claimRewards => claim_rewards
         getExemptedParticipants => get_exempted_participants
         getUserClaimed => get_user_claimed
@@ -42,7 +44,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getRewardsRemainingAmount => rewards_remaining_amount
         changeSigner => change_signer
         getCurrentWeek => get_current_week
-        getFirstWeekStartEpoch => first_week_start_epoch
+        getFirstWeekStartTimestamp => first_week_start_timestamp
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
         pause => pause_endpoint

@@ -185,6 +185,7 @@ fn deposit_additional_rewards_ok_test() {
                 reward_token_id: managed_token_id!(FIRST_PROJ_TOKEN),
                 undistributed_rewards: managed_biguint!(0),
                 start_week: 2,
+                last_update_week: 2,
                 end_week: 30,
             };
             assert_eq!(rewards_info, expected_rewards_info);

@@ -27,10 +27,6 @@ rev = "0c7f45e"
 git = "https://github.com/multiversx/mx-exchange-sc"
 rev = "0c7f45e"
 
-[dependencies.week-timekeeping]
-git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "0c7f45e"
-
 [dependencies.energy-query]
 git = "https://github.com/multiversx/mx-exchange-sc"
 rev = "0c7f45e"

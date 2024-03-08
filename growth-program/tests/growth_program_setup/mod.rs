@@ -4,10 +4,12 @@ use energy_factory::SimpleLockEnergy;
 use growth_program::{
     project::{ProjectId, ProjectsModule},
     rewards::{
-        claim::{ClaimRewardsModule, LockOption},
+        claim::{ClaimRewardsModule, ClaimType, LockOption},
         deposit::DepositRewardsModule,
+        week_timekeeping::{Epoch, MONDAY_19_02_2024_GMT_TIMESTAMP},
     },
-    GrowthProgram, DEFAULT_MIN_REWARDS_PERIOD, MAX_PERCENTAGE, PRECISION,
+    GrowthProgram, Timestamp, DEFAULT_MIN_REWARDS_PERIOD, MAX_PERCENTAGE, PRECISION,
+    WEEK_IN_SECONDS,
 };
 use multiversx_sc::{
     api::ManagedTypeApi,
@@ -25,7 +27,6 @@ use multiversx_sc_scenario::{
 use pair_mock::PairMock;
 use router_mock::RouterMock;
 use simple_lock::{locked_token::LockedTokenModule, SimpleLock};
-use week_timekeeping::Epoch;
 
 // associated private key - used for generating the signatures (please don't steal my funds)
 // 3eb200ef228e593d49a522f92587889fedfc091629d175873b64ca0ab3b4514d52773868c13654355cca16adb389b09201fabf5d9d4b795ebbdae5b361b46f20
@@ -82,6 +83,7 @@ pub struct GrowthProgramSetup<
         ContractObjWrapper<simple_lock::ContractObj<DebugApi>, SimpleLockBuilder>,
     pub energy_factory_wrapper:
         ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryBuilder>,
+    pub current_timestamp: Timestamp,
     pub current_epoch: Epoch,
 }
 
@@ -292,6 +294,8 @@ where
             )
             .assert_ok();
 
+        b_mock.set_block_timestamp(MONDAY_19_02_2024_GMT_TIMESTAMP);
+
         // Growth Program SC init
 
         let gp_wrapper = b_mock.create_sc_account(
@@ -333,6 +337,7 @@ where
             router_wrapper,
             simple_lock_wrapper,
             energy_factory_wrapper,
+            current_timestamp: MONDAY_19_02_2024_GMT_TIMESTAMP,
             current_epoch,
         }
     }
@@ -401,7 +406,9 @@ where
     }
 
     pub fn advance_week(&mut self) {
-        self.current_epoch += EPOCHS_IN_WEEK;
+        self.current_timestamp += WEEK_IN_SECONDS;
+        self.b_mock.set_block_timestamp(self.current_timestamp);
+        self.current_epoch += 7;
         self.b_mock.set_block_epoch(self.current_epoch);
     }
 
@@ -419,7 +426,7 @@ where
                     project_id,
                     managed_biguint!(min_rewards),
                     ManagedByteArray::new_from_bytes(signature),
-                    OptionalValue::Some(lock_option),
+                    ClaimType::Rewards(lock_option),
                 );
             })
     }
