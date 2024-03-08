@@ -56,7 +56,6 @@ pub trait DepositRewardsModule:
 
         self.rewards_dollars_per_energy(project_id, start_week)
             .set(initial_rewards_dollar_per_energy);
-
         self.signer(project_id).set(signer);
         self.project_active(project_id).set(PROJECT_UNPAUSED);
     }
