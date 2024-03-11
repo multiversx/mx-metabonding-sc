@@ -51,8 +51,7 @@ pub trait DepositRewardsModule:
         let min_rewards_period = self.min_rewards_period().get();
         require!(week_diff >= min_rewards_period, "Too few reward weeks");
 
-        let payment = self.call_value().single_esdt();
-        self.deposit_rewards_common(payment, project_id, start_week, end_week);
+        self.deposit_rewards_common(project_id, start_week, end_week);
 
         self.rewards_dollars_per_energy(project_id, start_week)
             .set(initial_rewards_dollar_per_energy);
@@ -69,7 +68,6 @@ pub trait DepositRewardsModule:
             "Must deposit initial rewards first"
         );
 
-        let payment = self.call_value().single_esdt();
         let rewards_info = info_mapper.get();
         let current_week = self.get_current_week();
         require!(
@@ -85,18 +83,14 @@ pub trait DepositRewardsModule:
             "Invalid end week"
         );
 
-        self.deposit_rewards_common(payment, project_id, start_week, end_week);
+        self.deposit_rewards_common(project_id, start_week, end_week);
     }
 
-    fn deposit_rewards_common(
-        &self,
-        payment: EsdtTokenPayment,
-        project_id: ProjectId,
-        start_week: Week,
-        end_week: Week,
-    ) {
+    fn deposit_rewards_common(&self, project_id: ProjectId, start_week: Week, end_week: Week) {
         self.require_not_paused();
         self.require_valid_project_id(project_id);
+
+        let payment = self.call_value().single_esdt();
         require!(payment.token_nonce == 0, "Only fungible tokens accepted");
 
         let caller = self.blockchain().get_caller();
