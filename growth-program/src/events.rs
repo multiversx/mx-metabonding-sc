@@ -1,4 +1,4 @@
-use crate::{project::ProjectId, rewards::claim::ClaimType};
+use crate::{project::ProjectId, rewards::claim_types::ClaimType};
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();

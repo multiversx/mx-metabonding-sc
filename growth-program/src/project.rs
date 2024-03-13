@@ -2,6 +2,9 @@ multiversx_sc::imports!();
 
 pub type ProjectId = u32;
 
+pub const PROJECT_PAUSED: bool = false;
+pub const PROJECT_UNPAUSED: bool = true;
+
 #[multiversx_sc::module]
 pub trait ProjectsModule {
     #[only_owner]
@@ -19,6 +22,23 @@ pub trait ProjectsModule {
         self.project_owner(project_id).set(new_owner);
     }
 
+    #[endpoint(pauseProject)]
+    fn pause_project(&self, project_id: ProjectId) {
+        self.pause_common(project_id, PROJECT_PAUSED);
+    }
+
+    #[endpoint(unpauseProject)]
+    fn unpause_project(&self, project_id: ProjectId) {
+        self.pause_common(project_id, PROJECT_UNPAUSED);
+    }
+
+    fn pause_common(&self, project_id: ProjectId, pause_status: bool) {
+        let caller = self.blockchain().get_caller();
+        self.require_is_project_owner(&caller, project_id);
+
+        self.project_active(project_id).set(pause_status);
+    }
+
     fn get_and_save_new_project_id(&self) -> ProjectId {
         let new_project_id = self.last_project_id().get() + 1;
         self.last_project_id().set(new_project_id);
@@ -34,10 +54,28 @@ pub trait ProjectsModule {
         );
     }
 
+    fn require_sc_owner_or_project_owner(&self, address: &ManagedAddress, project_id: ProjectId) {
+        let sc_owner = self.blockchain().get_owner_address();
+        let project_owner = self.project_owner(project_id).get();
+        require!(
+            address == &project_owner || address == &sc_owner,
+            "Only sc owner or project owner may call this endpoint"
+        );
+    }
+
     fn require_valid_project_id(&self, project_id: ProjectId) {
         let last_project_id = self.last_project_id().get();
         require!(project_id <= last_project_id, "Invalid project ID");
     }
+
+    fn require_project_active(&self, project_id: ProjectId) {
+        let project_status = self.project_active(project_id).get();
+        require!(project_status == PROJECT_UNPAUSED, "Project is paused");
+    }
+
+    #[view(isProjectActive)]
+    #[storage_mapper("projectActive")]
+    fn project_active(&self, project_id: ProjectId) -> SingleValueMapper<bool>;
 
     #[storage_mapper("lastProjectId")]
     fn last_project_id(&self) -> SingleValueMapper<ProjectId>;

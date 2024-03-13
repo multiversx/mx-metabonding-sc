@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           30
+// Endpoints:                           36
 // Async Callback (empty):               1
-// Total number of exported functions:  32
+// Total number of exported functions:  38
 
 #![no_std]
 #![allow(internal_features)]
@@ -23,10 +23,14 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         addProject => add_project
         setProjectOwner => set_project_owner
+        pauseProject => pause_project
+        unpauseProject => unpause_project
+        isProjectActive => project_active
         setMinRewardsPeriod => set_min_rewards_period
         setMinWeeklyRewardsValue => set_min_weekly_rewards_value
         depositInitialRewards => deposit_initial_rewards
         depositAdditionalRewards => deposit_additional_rewards
+        setFeesCollectorAddress => set_fees_collector_address
         ownerWithdrawRewards => owner_withdraw_rewards
         finishProgram => finish_program
         setMinRewardDollarsPerEnergy => set_min_reward_dollars_per_energy
@@ -42,8 +46,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         getRewardsInfo => rewards_info
         getRewardsTotalAmount => rewards_total_amount
         getRewardsRemainingAmount => rewards_remaining_amount
+        getNotesHistory => get_notes_history
         changeSigner => change_signer
         getCurrentWeek => get_current_week
+        getTimestampsStartAndEndOfWeek => get_timestamps_start_and_end_of_week
         getFirstWeekStartTimestamp => first_week_start_timestamp
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address

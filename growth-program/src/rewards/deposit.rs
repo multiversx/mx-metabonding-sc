@@ -1,6 +1,10 @@
 use super::week_timekeeping::Week;
 
-use crate::{project::ProjectId, rewards::common_rewards::RewardsInfo, WEEK_IN_SECONDS};
+use crate::{
+    project::{ProjectId, PROJECT_UNPAUSED},
+    rewards::common_rewards::RewardsInfo,
+    WEEK_IN_SECONDS,
+};
 
 multiversx_sc::imports!();
 
@@ -13,6 +17,7 @@ pub trait DepositRewardsModule:
     + super::common_rewards::CommonRewardsModule
     + super::energy::EnergyModule
     + super::week_timekeeping::WeekTimekeepingModule
+    + crate::validation::ValidationModule
     + multiversx_sc_modules::pause::PauseModule
 {
     #[only_owner]
@@ -35,82 +40,40 @@ pub trait DepositRewardsModule:
         start_week: Week,
         end_week: Week,
         initial_rewards_dollar_per_energy: BigUint,
+        signer: ManagedAddress,
     ) {
-        self.require_not_paused();
-        self.require_valid_project_id(project_id);
-
-        let caller = self.blockchain().get_caller();
-        self.require_is_project_owner(&caller, project_id);
-
-        let info_mapper = self.rewards_info(project_id);
-        require!(info_mapper.is_empty(), "Initial rewards already deposited");
-        require!(start_week < end_week, "Invalid week numbers");
+        require!(
+            self.rewards_info(project_id).is_empty(),
+            "Initial rewards already deposited"
+        );
 
         let week_diff = end_week - start_week;
         let min_rewards_period = self.min_rewards_period().get();
         require!(week_diff >= min_rewards_period, "Too few reward weeks");
 
-        let current_week = self.get_current_week();
-        require!(start_week > current_week, INVALID_START_WEEK_ERR_MSG);
-
-        let (token_id, amount) = self.call_value().single_fungible_esdt();
-        let rewards_per_week = &amount / week_diff as u32;
-        let dollar_value =
-            self.get_dollar_value(token_id.clone(), rewards_per_week.clone(), WEEK_IN_SECONDS);
-        let min_weekly_rewards_value = self.min_weekly_rewards_value().get();
-        require!(dollar_value >= min_weekly_rewards_value, "Too few rewards");
-
-        for week in start_week..end_week {
-            self.rewards_total_amount(project_id, week)
-                .set(&rewards_per_week);
-            self.rewards_remaining_amount(project_id, week)
-                .set(&rewards_per_week);
-        }
+        self.deposit_rewards_common(project_id, start_week, end_week);
 
         self.rewards_dollars_per_energy(project_id, start_week)
             .set(initial_rewards_dollar_per_energy);
-
-        let surplus_amount = amount - &rewards_per_week * week_diff as u32;
-        let surplus_payment = EsdtTokenPayment::new(token_id.clone(), 0, surplus_amount);
-        self.send()
-            .direct_non_zero_esdt_payment(&caller, &surplus_payment);
-
-        let rewards_info = RewardsInfo {
-            reward_token_id: token_id,
-            undistributed_rewards: BigUint::zero(),
-            start_week,
-            last_update_week: start_week,
-            end_week,
-        };
-        info_mapper.set(rewards_info);
+        self.signer(project_id).set(signer);
+        self.project_active(project_id).set(PROJECT_UNPAUSED);
     }
 
     #[payable("*")]
     #[endpoint(depositAdditionalRewards)]
     fn deposit_additional_rewards(&self, project_id: ProjectId, start_week: Week, end_week: Week) {
-        self.require_not_paused();
-        self.require_valid_project_id(project_id);
-
-        let caller = self.blockchain().get_caller();
-        self.require_is_project_owner(&caller, project_id);
-
         let info_mapper = self.rewards_info(project_id);
         require!(
             !info_mapper.is_empty(),
             "Must deposit initial rewards first"
         );
-        require!(start_week < end_week, "Invalid week numbers");
 
-        let (token_id, amount) = self.call_value().single_fungible_esdt();
-        let mut rewards_info = info_mapper.get();
-        require!(token_id == rewards_info.reward_token_id, "Invalid payment");
-
+        let rewards_info = info_mapper.get();
         let current_week = self.get_current_week();
         require!(
             rewards_info.end_week > current_week,
             "Project already ended"
         );
-        require!(start_week > current_week, INVALID_START_WEEK_ERR_MSG);
         require!(
             rewards_info.end_week >= start_week,
             INVALID_START_WEEK_ERR_MSG
@@ -120,14 +83,58 @@ pub trait DepositRewardsModule:
             "Invalid end week"
         );
 
-        self.update_rewards(project_id, OptionalValue::None, &mut rewards_info);
+        self.deposit_rewards_common(project_id, start_week, end_week);
+    }
+
+    fn deposit_rewards_common(&self, project_id: ProjectId, start_week: Week, end_week: Week) {
+        self.require_not_paused();
+        self.require_valid_project_id(project_id);
+
+        let payment = self.call_value().single_esdt();
+        require!(payment.token_nonce == 0, "Only fungible tokens accepted");
+
+        let caller = self.blockchain().get_caller();
+        self.require_is_project_owner(&caller, project_id);
+
+        require!(start_week < end_week, "Invalid week numbers");
+
+        let current_week = self.get_current_week();
+        require!(start_week > current_week, INVALID_START_WEEK_ERR_MSG);
 
         let week_diff = end_week - start_week;
-        let rewards_per_week = &amount / week_diff as u32;
-        let dollar_value =
-            self.get_dollar_value(token_id.clone(), rewards_per_week.clone(), WEEK_IN_SECONDS);
+        let rewards_per_week = &payment.amount / week_diff as u32;
+        let dollar_value = self.get_dollar_value(
+            payment.token_identifier.clone(),
+            rewards_per_week.clone(),
+            WEEK_IN_SECONDS,
+        );
         let min_weekly_rewards_value = self.min_weekly_rewards_value().get();
         require!(dollar_value >= min_weekly_rewards_value, "Too few rewards");
+
+        let info_mapper = self.rewards_info(project_id);
+        let mut rewards_info = if info_mapper.is_empty() {
+            RewardsInfo {
+                reward_token_id: payment.token_identifier.clone(),
+                undistributed_rewards: BigUint::zero(),
+                start_week,
+                last_update_week: start_week,
+                end_week,
+            }
+        } else {
+            let mut rewards_info = info_mapper.get();
+            rewards_info.last_update_week =
+                core::cmp::min(rewards_info.last_update_week, start_week);
+            rewards_info.end_week = core::cmp::max(rewards_info.end_week, end_week);
+
+            rewards_info
+        };
+
+        require!(
+            payment.token_identifier == rewards_info.reward_token_id,
+            "Invalid payment"
+        );
+
+        self.update_rewards(project_id, OptionalValue::None, &mut rewards_info);
 
         for week in start_week..end_week {
             self.rewards_total_amount(project_id, week)
@@ -136,13 +143,10 @@ pub trait DepositRewardsModule:
                 .update(|remaining| *remaining += &rewards_per_week);
         }
 
-        let surplus_amount = amount - &rewards_per_week * week_diff as u32;
-        let surplus_payment = EsdtTokenPayment::new(token_id, 0, surplus_amount);
+        let surplus_amount = payment.amount - &rewards_per_week * week_diff as u32;
+        let surplus_payment = EsdtTokenPayment::new(payment.token_identifier, 0, surplus_amount);
         self.send()
             .direct_non_zero_esdt_payment(&caller, &surplus_payment);
-
-        rewards_info.last_update_week = core::cmp::min(rewards_info.last_update_week, start_week);
-        rewards_info.end_week = core::cmp::max(rewards_info.end_week, end_week);
 
         info_mapper.set(rewards_info);
     }

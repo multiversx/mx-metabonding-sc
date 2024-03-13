@@ -4,7 +4,8 @@ use energy_factory::SimpleLockEnergy;
 use growth_program::{
     project::{ProjectId, ProjectsModule},
     rewards::{
-        claim::{ClaimRewardsModule, ClaimType, LockOption},
+        claim::ClaimRewardsModule,
+        claim_types::{ClaimType, LockOption},
         deposit::DepositRewardsModule,
         week_timekeeping::{Epoch, MONDAY_19_02_2024_GMT_TIMESTAMP},
     },
@@ -20,7 +21,7 @@ use multiversx_sc::{
 };
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, TxResult},
     DebugApi,
 };
@@ -306,17 +307,15 @@ where
         );
         b_mock
             .execute_tx(&owner_addr, &gp_wrapper, &rust_zero, |sc| {
-                let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
-
                 sc.init(
                     managed_biguint!(10) * PRECISION,
                     managed_biguint!(25) * MAX_PERCENTAGE / 100u32, // 25%
                     managed_biguint!(25) * MAX_PERCENTAGE / 100u32, // 25%
-                    signer_addr,
                     managed_address!(router_wrapper.address_ref()),
                     managed_address!(pair_wrapper.address_ref()),
                     managed_address!(energy_factory_wrapper.address_ref()),
                     managed_address!(simple_lock_wrapper.address_ref()),
+                    managed_address!(simple_lock_wrapper.address_ref()), // unused
                     managed_token_id!(USDC_TOKEN_ID),
                     managed_token_id!(WEGLD_TOKEN_ID),
                 );
@@ -376,11 +375,14 @@ where
                 0,
                 &StaticMethods::get_first_token_full_amount(),
                 |sc| {
+                    let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
+
                     sc.deposit_initial_rewards(
                         1,
                         2,
                         2 + DEFAULT_MIN_REWARDS_PERIOD,
                         managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR) * PRECISION,
+                        signer_addr,
                     );
                 },
             )
@@ -394,11 +396,14 @@ where
                 0,
                 &StaticMethods::get_second_token_full_amount(),
                 |sc| {
+                    let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
+
                     sc.deposit_initial_rewards(
                         2,
                         2,
                         2 + DEFAULT_MIN_REWARDS_PERIOD,
                         managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR),
+                        signer_addr,
                     );
                 },
             )
@@ -422,11 +427,16 @@ where
     ) -> TxResult {
         self.b_mock
             .execute_tx(user, &self.gp_wrapper, &rust_biguint!(0), |sc| {
+                let multi_value_arg = (
+                    managed_buffer!(b"lala"),
+                    ManagedByteArray::new_from_bytes(signature),
+                )
+                    .into();
                 let _ = sc.claim_rewards(
                     project_id,
                     managed_biguint!(min_rewards),
-                    ManagedByteArray::new_from_bytes(signature),
                     ClaimType::Rewards(lock_option),
+                    OptionalValue::Some(multi_value_arg),
                 );
             })
     }
