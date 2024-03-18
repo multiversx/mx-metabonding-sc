@@ -7,6 +7,7 @@ use growth_program::{
         claim::ClaimRewardsModule,
         claim_types::{ClaimType, LockOption},
         deposit::DepositRewardsModule,
+        energy::EnergyModule,
         week_timekeeping::{Epoch, MONDAY_19_02_2024_GMT_TIMESTAMP},
     },
     GrowthProgram, Timestamp, DEFAULT_MIN_REWARDS_PERIOD, MAX_PERCENTAGE, PRECISION,
@@ -320,6 +321,9 @@ where
                     managed_token_id!(WEGLD_TOKEN_ID),
                 );
 
+                sc.first_week_reward_dollars_per_energy()
+                    .set(managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR) * PRECISION * PRECISION);
+
                 sc.set_paused(false);
             })
             .assert_ok();
@@ -377,13 +381,7 @@ where
                 |sc| {
                     let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
 
-                    sc.deposit_initial_rewards(
-                        1,
-                        2,
-                        2 + DEFAULT_MIN_REWARDS_PERIOD,
-                        managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR) * PRECISION,
-                        signer_addr,
-                    );
+                    sc.deposit_initial_rewards(1, 2, 2 + DEFAULT_MIN_REWARDS_PERIOD, signer_addr);
                 },
             )
             .assert_ok();
@@ -398,13 +396,7 @@ where
                 |sc| {
                     let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
 
-                    sc.deposit_initial_rewards(
-                        2,
-                        2,
-                        2 + DEFAULT_MIN_REWARDS_PERIOD,
-                        managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR),
-                        signer_addr,
-                    );
+                    sc.deposit_initial_rewards(2, 2, 2 + DEFAULT_MIN_REWARDS_PERIOD, signer_addr);
                 },
             )
             .assert_ok();

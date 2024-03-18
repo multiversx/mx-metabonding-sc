@@ -3,7 +3,7 @@ use super::week_timekeeping::Week;
 use crate::{
     project::{ProjectId, PROJECT_UNPAUSED},
     rewards::common_rewards::RewardsInfo,
-    WEEK_IN_SECONDS,
+    DAY_IN_SECONDS,
 };
 
 multiversx_sc::imports!();
@@ -19,6 +19,7 @@ pub trait DepositRewardsModule:
     + super::week_timekeeping::WeekTimekeepingModule
     + crate::validation::ValidationModule
     + multiversx_sc_modules::pause::PauseModule
+    + energy_query::EnergyQueryModule
 {
     #[only_owner]
     #[endpoint(setMinRewardsPeriod)]
@@ -39,7 +40,6 @@ pub trait DepositRewardsModule:
         project_id: ProjectId,
         start_week: Week,
         end_week: Week,
-        initial_rewards_dollar_per_energy: BigUint,
         signer: ManagedAddress,
     ) {
         require!(
@@ -53,8 +53,14 @@ pub trait DepositRewardsModule:
 
         self.deposit_rewards_common(project_id, start_week, end_week);
 
+        let first_week_rdpe = self.first_week_reward_dollars_per_energy().get();
+        require!(
+            first_week_rdpe > 0,
+            "First week rewards dollar per energy not set"
+        );
+
         self.rewards_dollars_per_energy(project_id, start_week)
-            .set(initial_rewards_dollar_per_energy);
+            .set(first_week_rdpe);
         self.signer(project_id).set(signer);
         self.project_active(project_id).set(PROJECT_UNPAUSED);
     }
@@ -103,36 +109,34 @@ pub trait DepositRewardsModule:
 
         let week_diff = end_week - start_week;
         let rewards_per_week = &payment.amount / week_diff as u32;
-        let dollar_value = self.get_dollar_value(
+        let dollar_value = self.get_usdc_value(
             payment.token_identifier.clone(),
             rewards_per_week.clone(),
-            WEEK_IN_SECONDS,
+            DAY_IN_SECONDS,
         );
         let min_weekly_rewards_value = self.min_weekly_rewards_value().get();
         require!(dollar_value >= min_weekly_rewards_value, "Too few rewards");
 
         let info_mapper = self.rewards_info(project_id);
-        let mut rewards_info = if info_mapper.is_empty() {
-            RewardsInfo {
-                reward_token_id: payment.token_identifier.clone(),
-                undistributed_rewards: BigUint::zero(),
-                start_week,
-                last_update_week: start_week,
-                end_week,
-            }
-        } else {
+        let mut rewards_info = if !info_mapper.is_empty() {
             let mut rewards_info = info_mapper.get();
+            require!(
+                payment.token_identifier == rewards_info.reward_token_id,
+                "Invalid payment"
+            );
+
             rewards_info.last_update_week =
                 core::cmp::min(rewards_info.last_update_week, start_week);
             rewards_info.end_week = core::cmp::max(rewards_info.end_week, end_week);
 
-            rewards_info
-        };
+            if current_week < start_week && start_week < rewards_info.start_week {
+                rewards_info.start_week = start_week;
+            }
 
-        require!(
-            payment.token_identifier == rewards_info.reward_token_id,
-            "Invalid payment"
-        );
+            rewards_info
+        } else {
+            RewardsInfo::new(payment.token_identifier.clone(), start_week, end_week)
+        };
 
         self.update_rewards(project_id, OptionalValue::None, &mut rewards_info);
 
@@ -147,7 +151,5 @@ pub trait DepositRewardsModule:
         let surplus_payment = EsdtTokenPayment::new(payment.token_identifier, 0, surplus_amount);
         self.send()
             .direct_non_zero_esdt_payment(&caller, &surplus_payment);
-
-        info_mapper.set(rewards_info);
     }
 }

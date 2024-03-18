@@ -44,7 +44,7 @@ pub trait WithdrawRewardsModule:
             "Cannot withdraw anymore"
         );
         require!(
-            start_week > rewards_info.last_update_week,
+            start_week >= rewards_info.last_update_week,
             INVALID_START_WEEK_ERR_MSG
         );
         require!(
@@ -80,7 +80,8 @@ pub trait WithdrawRewardsModule:
     fn finish_program(&self, project_id: ProjectId) {
         self.require_not_paused();
 
-        let mut rewards_info = self.rewards_info(project_id).take();
+        let rewards_mapper = self.rewards_info(project_id);
+        let mut rewards_info = rewards_mapper.get();
         let current_week = self.get_current_week();
         require!(
             current_week >= rewards_info.end_week,
@@ -88,6 +89,7 @@ pub trait WithdrawRewardsModule:
         );
 
         self.update_rewards(project_id, OptionalValue::None, &mut rewards_info);
+        rewards_mapper.clear();
 
         if rewards_info.undistributed_rewards == 0 {
             return;

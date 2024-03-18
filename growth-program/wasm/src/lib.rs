@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           36
+// Endpoints:                           37
 // Async Callback (empty):               1
-// Total number of exported functions:  38
+// Total number of exported functions:  39
 
 #![no_std]
 #![allow(internal_features)]
@@ -34,6 +34,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         ownerWithdrawRewards => owner_withdraw_rewards
         finishProgram => finish_program
         setMinRewardDollarsPerEnergy => set_min_reward_dollars_per_energy
+        setInitialRdpeFromApr => set_initial_rdpe_from_apr
         setNextWeekRewardDollarsPerEnergy => set_next_week_reward_dollars_per_energy
         setAlpha => set_alpha
         setBeta => set_beta

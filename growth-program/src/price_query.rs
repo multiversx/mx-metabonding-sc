@@ -15,7 +15,7 @@ pub enum PairQueryResponse<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait PriceQueryModule {
-    fn get_dollar_value(
+    fn get_usdc_value(
         &self,
         token_id: TokenIdentifier,
         amount: BigUint,

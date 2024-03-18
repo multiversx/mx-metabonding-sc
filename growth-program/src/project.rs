@@ -19,6 +19,7 @@ pub trait ProjectsModule {
     #[only_owner]
     #[endpoint(setProjectOwner)]
     fn set_project_owner(&self, project_id: ProjectId, new_owner: ManagedAddress) {
+        self.require_valid_project_id(project_id);
         self.project_owner(project_id).set(new_owner);
     }
 
@@ -33,8 +34,10 @@ pub trait ProjectsModule {
     }
 
     fn pause_common(&self, project_id: ProjectId, pause_status: bool) {
+        self.require_valid_project_id(project_id);
+
         let caller = self.blockchain().get_caller();
-        self.require_is_project_owner(&caller, project_id);
+        self.require_sc_owner_or_project_owner(&caller, project_id);
 
         self.project_active(project_id).set(pause_status);
     }
