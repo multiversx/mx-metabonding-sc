@@ -15,6 +15,7 @@ pub trait EnergyModule:
     super::common_rewards::CommonRewardsModule
     + crate::price_query::PriceQueryModule
     + crate::project::ProjectsModule
+    + crate::events::EventsModule
     + super::week_timekeeping::WeekTimekeepingModule
     + energy_query::EnergyQueryModule
 {

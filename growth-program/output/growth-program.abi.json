@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-162-g6750cb9"
+            "gitVersion": "v1.0.2-165-g98ae98b"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -630,6 +630,97 @@
                     "type": "ClaimRewardsEventData"
                 }
             ]
+        },
+        {
+            "identifier": "addProjectEvent",
+            "inputs": [
+                {
+                    "name": "project_owner",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "project_id",
+                    "type": "u32",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "depositInitialRewardsEvent",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32",
+                    "indexed": true
+                },
+                {
+                    "name": "deposit_data",
+                    "type": "DepositInitialRewardsEventData"
+                }
+            ]
+        },
+        {
+            "identifier": "depositAdditionalRewardsEvent",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32",
+                    "indexed": true
+                },
+                {
+                    "name": "deposit_data",
+                    "type": "DepositAdditionalRewardsEventData"
+                }
+            ]
+        },
+        {
+            "identifier": "ownerWithdrawEvent",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32",
+                    "indexed": true
+                },
+                {
+                    "name": "withdraw_data",
+                    "type": "OwnerWithdrawEventData"
+                }
+            ]
+        },
+        {
+            "identifier": "changeSignerEvent",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32",
+                    "indexed": true
+                },
+                {
+                    "name": "new_signer",
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "identifier": "pauseProjectEvent",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "unpauseProjectEvent",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "u32",
+                    "indexed": true
+                }
+            ]
         }
     ],
     "esdtAttributes": [],
@@ -668,6 +759,44 @@
                             "type": "LockOption"
                         }
                     ]
+                }
+            ]
+        },
+        "DepositAdditionalRewardsEventData": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "start_week",
+                    "type": "u32"
+                },
+                {
+                    "name": "end_week",
+                    "type": "u32"
+                },
+                {
+                    "name": "total_reward_amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        "DepositInitialRewardsEventData": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "start_week",
+                    "type": "u32"
+                },
+                {
+                    "name": "end_week",
+                    "type": "u32"
+                },
+                {
+                    "name": "signer",
+                    "type": "Address"
+                },
+                {
+                    "name": "total_reward_amount",
+                    "type": "BigUint"
                 }
             ]
         },
@@ -715,6 +844,19 @@
                 {
                     "name": "week",
                     "type": "u32"
+                }
+            ]
+        },
+        "OwnerWithdrawEventData": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "start_week",
+                    "type": "u32"
+                },
+                {
+                    "name": "total_withdraw_amount",
+                    "type": "BigUint"
                 }
             ]
         },

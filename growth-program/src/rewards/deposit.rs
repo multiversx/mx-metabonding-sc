@@ -1,6 +1,7 @@
 use super::week_timekeeping::Week;
 
 use crate::{
+    events::DepositInitialRewardsEventData,
     project::{ProjectId, PROJECT_UNPAUSED},
     rewards::common_rewards::RewardsInfo,
     DAY_IN_SECONDS,
@@ -13,6 +14,7 @@ pub static INVALID_START_WEEK_ERR_MSG: &[u8] = b"Invalid start week";
 #[multiversx_sc::module]
 pub trait DepositRewardsModule:
     crate::project::ProjectsModule
+    + crate::events::EventsModule
     + crate::price_query::PriceQueryModule
     + super::common_rewards::CommonRewardsModule
     + super::energy::EnergyModule
@@ -51,7 +53,7 @@ pub trait DepositRewardsModule:
         let min_rewards_period = self.min_rewards_period().get();
         require!(week_diff >= min_rewards_period, "Too few reward weeks");
 
-        self.deposit_rewards_common(project_id, start_week, end_week);
+        let total_rewards = self.deposit_rewards_common(project_id, start_week, end_week);
 
         let first_week_rdpe = self.first_week_reward_dollars_per_energy().get();
         require!(
@@ -61,8 +63,18 @@ pub trait DepositRewardsModule:
 
         self.rewards_dollars_per_energy(project_id, start_week)
             .set(first_week_rdpe);
-        self.signer(project_id).set(signer);
+        self.signer(project_id).set(&signer);
         self.project_active(project_id).set(PROJECT_UNPAUSED);
+
+        self.emit_deposit_initial_rewards_event(
+            project_id,
+            &DepositInitialRewardsEventData {
+                start_week,
+                end_week,
+                signer,
+                total_reward_amount: total_rewards,
+            },
+        );
     }
 
     #[payable("*")]
@@ -89,10 +101,17 @@ pub trait DepositRewardsModule:
             "Invalid end week"
         );
 
-        self.deposit_rewards_common(project_id, start_week, end_week);
+        let total_rewards = self.deposit_rewards_common(project_id, start_week, end_week);
+
+        self.emit_deposit_additional_rewards_event(project_id, start_week, end_week, total_rewards);
     }
 
-    fn deposit_rewards_common(&self, project_id: ProjectId, start_week: Week, end_week: Week) {
+    fn deposit_rewards_common(
+        &self,
+        project_id: ProjectId,
+        start_week: Week,
+        end_week: Week,
+    ) -> BigUint {
         self.require_not_paused();
         self.require_valid_project_id(project_id);
 
@@ -147,9 +166,12 @@ pub trait DepositRewardsModule:
                 .update(|remaining| *remaining += &rewards_per_week);
         }
 
-        let surplus_amount = payment.amount - &rewards_per_week * week_diff as u32;
+        let total_rewards = &rewards_per_week * week_diff as u32;
+        let surplus_amount = payment.amount - &total_rewards;
         let surplus_payment = EsdtTokenPayment::new(payment.token_identifier, 0, surplus_amount);
         self.send()
             .direct_non_zero_esdt_payment(&caller, &surplus_payment);
+
+        total_rewards
     }
 }
