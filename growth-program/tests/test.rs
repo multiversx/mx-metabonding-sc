@@ -581,7 +581,7 @@ fn start_program_again_after_end() {
 
     setup
         .b_mock
-        .set_block_timestamp(MONDAY_19_02_2024_GMT_TIMESTAMP + (WEEK_IN_SECONDS as u64) * 27);
+        .set_block_timestamp(MONDAY_19_02_2024_GMT_TIMESTAMP + WEEK_IN_SECONDS * 27);
 
     setup
         .b_mock
