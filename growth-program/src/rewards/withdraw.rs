@@ -101,6 +101,7 @@ pub trait WithdrawRewardsModule:
             rewards_info.undistributed_rewards,
         );
 
+        // comment this to run the "start_program_again_after_end" test
         let fees_collector_address = self.fees_collector_address().get();
         let _: IgnoreValue = self
             .fees_collector_proxy(fees_collector_address)

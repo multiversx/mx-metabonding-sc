@@ -8,8 +8,10 @@ use growth_program::{
         common_rewards::{CommonRewardsModule, RewardsInfo},
         deposit::DepositRewardsModule,
         energy::EnergyModule,
+        week_timekeeping::MONDAY_19_02_2024_GMT_TIMESTAMP,
+        withdraw::WithdrawRewardsModule,
     },
-    DEFAULT_MIN_REWARDS_PERIOD,
+    DEFAULT_MIN_REWARDS_PERIOD, WEEK_IN_SECONDS,
 };
 use growth_program_setup::*;
 use multiversx_sc::{
@@ -350,4 +352,269 @@ fn claim_too_many_rewards_test() {
             },
         )
         .assert_user_error("Too few rewards");
+}
+
+#[test]
+fn claim_attempts_test() {
+    let mut setup = GrowthProgramSetup::new(
+        growth_program::contract_obj,
+        pair_mock::contract_obj,
+        router_mock::contract_obj,
+        simple_lock::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    setup.add_projects();
+    setup.deposit_rewards();
+
+    // advance to week 2
+    setup.advance_week();
+
+    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
+    setup
+        .claim(
+            &setup.first_user_addr.clone(),
+            1,
+            LockOption::OneWeek,
+            0,
+            &sig_first_user_week_2,
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.gp_wrapper, |sc| {
+            let total_energy = sc.total_energy_for_week(1, 2).get();
+            assert_eq!(total_energy, managed_biguint!(7692307));
+
+            let interested_energy = sc.interested_energy_rewards_claimers(1, 2).get();
+            assert_eq!(interested_energy, managed_biguint!(348000) / 2u32); // 50% for one week lock
+        })
+        .assert_ok();
+
+    DebugApi::dummy();
+    setup.b_mock.check_nft_balance(
+        &setup.first_user_addr,
+        LOCKED_TOKEN_ID,
+        1,
+        &num_bigint::BigUint::from_u128(870000078300007047000634).unwrap(),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(FIRST_PROJ_TOKEN),
+            original_token_nonce: 0,
+            unlock_epoch: 19,
+        }),
+    );
+
+    // try claim rewards project 2, same signature
+    setup
+        .claim(
+            &setup.first_user_addr.clone(),
+            2,
+            LockOption::OneWeek,
+            0,
+            &sig_first_user_week_2,
+        )
+        .assert_error(10, "invalid signature");
+
+    // try claim exemption after claim
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.first_user_addr,
+            &setup.gp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let _ = sc.claim_rewards(
+                    1,
+                    managed_biguint!(0),
+                    ClaimType::Exemption,
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_user_error("Already claimed");
+
+    // advance to week 3
+    setup.advance_week();
+
+    // first user try claim with the same signature
+    setup
+        .claim(
+            &setup.first_user_addr.clone(),
+            1,
+            LockOption::OneWeek,
+            0,
+            &sig_first_user_week_2,
+        )
+        .assert_error(10, "invalid signature");
+}
+
+#[test]
+fn exempted_user_claim_next_week_test() {
+    let mut setup = GrowthProgramSetup::new(
+        growth_program::contract_obj,
+        pair_mock::contract_obj,
+        router_mock::contract_obj,
+        simple_lock::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    setup.add_projects();
+    setup.deposit_rewards();
+
+    // advance to week 2
+    setup.advance_week();
+
+    // first user try claim exemption while rewards remain
+    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.first_user_addr,
+            &setup.gp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let multi_value_arg = (
+                    managed_buffer!(b"lala"),
+                    ManagedByteArray::new_from_bytes(&sig_first_user_week_2),
+                )
+                    .into();
+
+                let _ = sc.claim_rewards(
+                    1,
+                    managed_biguint!(0),
+                    ClaimType::Exemption,
+                    OptionalValue::Some(multi_value_arg),
+                );
+            },
+        )
+        .assert_user_error("Can claim full rewards");
+
+    // first user claim exemption
+    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.first_user_addr,
+            &setup.gp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                // set remaining rewards to 0 so user can claim exemption
+                sc.rewards_remaining_amount(1, 2).clear();
+
+                let multi_value_arg = (
+                    managed_buffer!(b"lala"),
+                    ManagedByteArray::new_from_bytes(&sig_first_user_week_2),
+                )
+                    .into();
+
+                let _ = sc.claim_rewards(
+                    1,
+                    managed_biguint!(0),
+                    ClaimType::Exemption,
+                    OptionalValue::Some(multi_value_arg),
+                );
+            },
+        )
+        .assert_ok();
+
+    // advance to week 3
+    setup.advance_week();
+
+    // user claim next week without signature
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.first_user_addr,
+            &setup.gp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let _ = sc.claim_rewards(
+                    1,
+                    managed_biguint!(0),
+                    ClaimType::Rewards(LockOption::OneWeek),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_ok();
+
+    DebugApi::dummy();
+    setup.b_mock.check_nft_balance(
+        &setup.first_user_addr,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(1705000), // way less rewards due to calculated rdpe decreasing
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(FIRST_PROJ_TOKEN),
+            original_token_nonce: 0,
+            unlock_epoch: 26,
+        }),
+    );
+}
+
+#[ignore = "Comment suggested part of code for it to work"]
+#[test]
+fn start_program_again_after_end() {
+    let mut setup = GrowthProgramSetup::new(
+        growth_program::contract_obj,
+        pair_mock::contract_obj,
+        router_mock::contract_obj,
+        simple_lock::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    setup.add_projects();
+    setup.deposit_rewards();
+
+    setup
+        .b_mock
+        .execute_query(&setup.gp_wrapper, |sc| {
+            let rewards_per_week_amount = sc.rewards_total_amount(1, 2).get();
+            assert_eq!(
+                rewards_per_week_amount,
+                StaticMethods::get_first_token_full_amount_managed::<DebugApi>()
+                    / DEFAULT_MIN_REWARDS_PERIOD as u32
+            );
+        })
+        .assert_ok();
+
+    setup
+        .b_mock
+        .set_block_timestamp(MONDAY_19_02_2024_GMT_TIMESTAMP + (WEEK_IN_SECONDS as u64) * 27);
+
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.first_project_owner,
+            &setup.gp_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.finish_program(1);
+            },
+        )
+        .assert_ok();
+
+    setup.b_mock.set_esdt_balance(
+        &setup.first_project_owner,
+        SECOND_PROJ_TOKEN,
+        &StaticMethods::get_second_token_full_amount(),
+    );
+
+    // start program again, different token
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &setup.first_project_owner,
+            &setup.gp_wrapper,
+            SECOND_PROJ_TOKEN,
+            0,
+            &StaticMethods::get_second_token_full_amount(),
+            |sc| {
+                let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
+
+                sc.deposit_initial_rewards(1, 30, 30 + DEFAULT_MIN_REWARDS_PERIOD, signer_addr);
+            },
+        )
+        .assert_ok();
 }
