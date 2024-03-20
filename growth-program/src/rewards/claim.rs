@@ -154,8 +154,6 @@ pub trait ClaimRewardsModule:
     }
 
     fn check_signature(&self, args: CheckSignatureArgs<Self::Api>) {
-        self.require_project_active(args.project_id);
-
         if self
             .exempted_participants(args.project_id, args.current_week)
             .contains(&args.user_id)
@@ -163,6 +161,7 @@ pub trait ClaimRewardsModule:
             return;
         }
 
+        self.require_project_active(args.project_id);
         require!(
             args.opt_note_and_signature.is_some(),
             "Must provide note and signature"
