@@ -53,7 +53,7 @@ pub trait DepositRewardsModule:
         let min_rewards_period = self.min_rewards_period().get();
         require!(week_diff >= min_rewards_period, "Too few reward weeks");
 
-        let total_rewards = self.deposit_rewards_common(project_id, start_week, end_week);
+        let reward_payment = self.deposit_rewards_common(project_id, start_week, end_week);
 
         let first_week_rdpe = self.first_week_reward_dollars_per_energy().get();
         require!(
@@ -72,7 +72,7 @@ pub trait DepositRewardsModule:
                 start_week,
                 end_week,
                 signer,
-                total_reward_amount: total_rewards,
+                reward_payment,
             },
         );
     }
@@ -101,9 +101,14 @@ pub trait DepositRewardsModule:
             "Invalid end week"
         );
 
-        let total_rewards = self.deposit_rewards_common(project_id, start_week, end_week);
+        let reward_payment = self.deposit_rewards_common(project_id, start_week, end_week);
 
-        self.emit_deposit_additional_rewards_event(project_id, start_week, end_week, total_rewards);
+        self.emit_deposit_additional_rewards_event(
+            project_id,
+            start_week,
+            end_week,
+            reward_payment,
+        );
     }
 
     fn deposit_rewards_common(
@@ -111,7 +116,7 @@ pub trait DepositRewardsModule:
         project_id: ProjectId,
         start_week: Week,
         end_week: Week,
-    ) -> BigUint {
+    ) -> EsdtTokenPayment {
         self.require_not_paused();
         self.require_valid_project_id(project_id);
 
@@ -168,10 +173,11 @@ pub trait DepositRewardsModule:
 
         let total_rewards = &rewards_per_week * week_diff as u32;
         let surplus_amount = payment.amount - &total_rewards;
-        let surplus_payment = EsdtTokenPayment::new(payment.token_identifier, 0, surplus_amount);
+        let surplus_payment =
+            EsdtTokenPayment::new(payment.token_identifier.clone(), 0, surplus_amount);
         self.send()
             .direct_non_zero_esdt_payment(&caller, &surplus_payment);
 
-        total_rewards
+        EsdtTokenPayment::new(payment.token_identifier, 0, total_rewards)
     }
 }

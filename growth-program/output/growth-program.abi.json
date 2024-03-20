@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-165-g98ae98b"
+            "gitVersion": "v1.0.2-166-g634dcbb"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -774,8 +774,8 @@
                     "type": "u32"
                 },
                 {
-                    "name": "total_reward_amount",
-                    "type": "BigUint"
+                    "name": "reward_payment",
+                    "type": "EsdtTokenPayment"
                 }
             ]
         },
@@ -795,8 +795,8 @@
                     "type": "Address"
                 },
                 {
-                    "name": "total_reward_amount",
-                    "type": "BigUint"
+                    "name": "reward_payment",
+                    "type": "EsdtTokenPayment"
                 }
             ]
         },

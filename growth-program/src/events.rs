@@ -18,14 +18,14 @@ pub struct DepositInitialRewardsEventData<M: ManagedTypeApi> {
     pub start_week: Week,
     pub end_week: Week,
     pub signer: ManagedAddress<M>,
-    pub total_reward_amount: BigUint<M>,
+    pub reward_payment: EsdtTokenPayment<M>,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
 pub struct DepositAdditionalRewardsEventData<M: ManagedTypeApi> {
     pub start_week: Week,
     pub end_week: Week,
-    pub total_reward_amount: BigUint<M>,
+    pub reward_payment: EsdtTokenPayment<M>,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
@@ -70,12 +70,12 @@ pub trait EventsModule {
         project_id: ProjectId,
         start_week: Week,
         end_week: Week,
-        total_reward_amount: BigUint,
+        reward_payment: EsdtTokenPayment,
     ) {
         let deposit_data = DepositAdditionalRewardsEventData {
             start_week,
             end_week,
-            total_reward_amount,
+            reward_payment,
         };
         self.deposit_additional_rewards_event(project_id, &deposit_data);
     }
