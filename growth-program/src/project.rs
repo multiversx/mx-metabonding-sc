@@ -6,12 +6,14 @@ pub const PROJECT_PAUSED: bool = false;
 pub const PROJECT_UNPAUSED: bool = true;
 
 #[multiversx_sc::module]
-pub trait ProjectsModule {
+pub trait ProjectsModule: crate::events::EventsModule {
     #[only_owner]
     #[endpoint(addProject)]
     fn add_project(&self, project_owner: ManagedAddress) -> ProjectId {
         let project_id = self.get_and_save_new_project_id();
-        self.project_owner(project_id).set(project_owner);
+        self.project_owner(project_id).set(&project_owner);
+
+        self.emit_add_project_event(&project_owner, project_id);
 
         project_id
     }
@@ -26,11 +28,15 @@ pub trait ProjectsModule {
     #[endpoint(pauseProject)]
     fn pause_project(&self, project_id: ProjectId) {
         self.pause_common(project_id, PROJECT_PAUSED);
+
+        self.emit_pause_project_event(project_id);
     }
 
     #[endpoint(unpauseProject)]
     fn unpause_project(&self, project_id: ProjectId) {
         self.pause_common(project_id, PROJECT_UNPAUSED);
+
+        self.emit_unpause_project_event(project_id);
     }
 
     fn pause_common(&self, project_id: ProjectId, pause_status: bool) {

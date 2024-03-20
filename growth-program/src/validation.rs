@@ -13,13 +13,15 @@ pub struct SignatureData<'a, M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::module]
-pub trait ValidationModule: crate::project::ProjectsModule {
+pub trait ValidationModule: crate::project::ProjectsModule + crate::events::EventsModule {
     #[endpoint(changeSigner)]
     fn change_signer(&self, project_id: ProjectId, new_signer: ManagedAddress) {
         let caller = self.blockchain().get_caller();
         self.require_sc_owner_or_project_owner(&caller, project_id);
 
-        self.signer(project_id).set(new_signer);
+        self.signer(project_id).set(&new_signer);
+
+        self.emit_change_signer_event(project_id, &new_signer);
     }
 
     fn verify_signature(

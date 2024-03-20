@@ -18,7 +18,7 @@ pub struct Note<M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::module]
-pub trait NotesHistoryModule: crate::project::ProjectsModule {
+pub trait NotesHistoryModule: crate::project::ProjectsModule + crate::events::EventsModule {
     #[view(getNotesHistory)]
     fn get_notes_history(
         &self,

@@ -17,6 +17,7 @@ mod fees_collector_proxy {
 pub trait WithdrawRewardsModule:
     super::common_rewards::CommonRewardsModule
     + crate::project::ProjectsModule
+    + crate::events::EventsModule
     + super::week_timekeeping::WeekTimekeepingModule
     + multiversx_sc_modules::pause::PauseModule
 {
@@ -64,7 +65,11 @@ pub trait WithdrawRewardsModule:
         }
 
         let sc_owner = self.blockchain().get_owner_address();
-        let payment = EsdtTokenPayment::new(rewards_info.reward_token_id.clone(), 0, total_amount);
+        let payment = EsdtTokenPayment::new(
+            rewards_info.reward_token_id.clone(),
+            0,
+            total_amount.clone(),
+        );
         self.send()
             .direct_non_zero_esdt_payment(&sc_owner, &payment);
 
@@ -74,6 +79,8 @@ pub trait WithdrawRewardsModule:
             rewards_info.end_week = start_week;
             info_mapper.set(rewards_info);
         }
+
+        self.emit_owner_withdraw_event(project_id, start_week, total_amount);
     }
 
     #[endpoint(finishProgram)]
