@@ -3,7 +3,6 @@ use crate::{Timestamp, WEEK_IN_SECONDS};
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-pub const FIRST_WEEK: Week = 1;
 pub const MONDAY_19_02_2024_GMT_TIMESTAMP: u64 = 1_708_300_800;
 static INVALID_WEEK_ERR_MSG: &[u8] = b"Week 0 is not a valid week";
 
@@ -27,8 +26,10 @@ pub trait WeekTimekeepingModule {
 
     #[view(getTimestampsStartAndEndOfWeek)]
     fn get_timestamps_start_and_end_of_week(&self, week: Week) -> StartEndWeekTimestampPair {
+        require!(week > 0, "Invalid week");
+
         let first_week_start_timestamp = self.first_week_start_timestamp().get();
-        let start = first_week_start_timestamp + week as u64 * WEEK_IN_SECONDS;
+        let start = first_week_start_timestamp + (week as u64 - 1) * WEEK_IN_SECONDS;
         let end = start + WEEK_IN_SECONDS - 1;
 
         StartEndWeekTimestampPair { start, end }

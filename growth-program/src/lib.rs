@@ -16,6 +16,7 @@ pub const MAX_PERCENTAGE: u32 = 100_000;
 pub const HOUR_IN_SECONDS: Timestamp = 60 * 60;
 pub const DAY_IN_SECONDS: Timestamp = 24 * 60 * 60;
 pub const WEEK_IN_SECONDS: Timestamp = 7 * DAY_IN_SECONDS;
+pub const WEEKS_PER_YEAR: u32 = 52;
 pub const PRECISION: u64 = 1_000_000_000_000_000_000;
 
 pub static GROWTH_SIGNATURE_PREFIX: &[u8] = b"xExchangeGrowthV1TaskCompleted";
@@ -42,7 +43,10 @@ pub trait GrowthProgram:
     + multiversx_sc_modules::pause::PauseModule
 {
     /// Arguments:
-    /// min_reward_dollars_per_energy: Scaled to PRECISION const.
+    /// min_reward_dollars_per_energy is a value scaled to PRECISION*PRECISION.
+    /// For example, if the desired RDPE is that 10^18 units of energy give 10^{-15} dollars of rewards,
+    /// then we should provide the argument 10^{-15}*10^{-18}*PRECISION*PRECISION = 10^3.
+    ///
     /// alpha: Percentage, scaled to MAX_PERCENTAGE const.
     /// beta: Percentage, scaled to MAX_PERCENTAGE const.
     #[init]

@@ -14,6 +14,18 @@ pub struct RewardsInfo<M: ManagedTypeApi> {
     pub end_week: Week,
 }
 
+impl<M: ManagedTypeApi> RewardsInfo<M> {
+    pub fn new(reward_token_id: TokenIdentifier<M>, start_week: Week, end_week: Week) -> Self {
+        RewardsInfo {
+            reward_token_id,
+            undistributed_rewards: BigUint::zero(),
+            start_week,
+            last_update_week: start_week,
+            end_week,
+        }
+    }
+}
+
 #[multiversx_sc::module]
 pub trait CommonRewardsModule: super::week_timekeeping::WeekTimekeepingModule {
     #[endpoint(updateRewards)]
@@ -22,9 +34,8 @@ pub trait CommonRewardsModule: super::week_timekeeping::WeekTimekeepingModule {
         project_id: ProjectId,
         opt_max_nr_weeks: OptionalValue<Week>,
     ) {
-        self.rewards_info(project_id).update(|rewards_info| {
-            self.update_rewards(project_id, opt_max_nr_weeks, rewards_info);
-        });
+        let mut rewards_info = self.rewards_info(project_id).get();
+        self.update_rewards(project_id, opt_max_nr_weeks, &mut rewards_info);
     }
 
     fn update_rewards(
@@ -35,14 +46,17 @@ pub trait CommonRewardsModule: super::week_timekeeping::WeekTimekeepingModule {
     ) {
         let current_week = self.get_current_week();
         if rewards_info.start_week > current_week {
+            self.rewards_info(project_id).set(rewards_info);
             return;
         }
 
         if rewards_info.last_update_week >= current_week {
+            self.rewards_info(project_id).set(rewards_info);
             return;
         }
 
         if rewards_info.last_update_week == rewards_info.end_week {
+            self.rewards_info(project_id).set(rewards_info);
             return;
         }
 
@@ -61,14 +75,18 @@ pub trait CommonRewardsModule: super::week_timekeeping::WeekTimekeepingModule {
             total_undistributed_rewards += undistributed_rewards;
         }
 
-        if last_week < rewards_info.end_week - 1 {
+        if last_week < rewards_info.end_week {
             self.rewards_remaining_amount(project_id, last_week)
-                .update(|rem_rew| *rem_rew += total_undistributed_rewards);
+                .update(|rem_rew| *rem_rew += &total_undistributed_rewards);
+            self.rewards_total_amount(project_id, last_week)
+                .update(|rew_total| *rew_total += total_undistributed_rewards);
         } else {
             rewards_info.undistributed_rewards += total_undistributed_rewards;
         }
 
         rewards_info.last_update_week = last_week;
+
+        self.rewards_info(project_id).set(rewards_info);
     }
 
     #[storage_mapper("minRewardsPeriod")]

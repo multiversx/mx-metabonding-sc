@@ -43,6 +43,10 @@ pub trait ClaimRewardsModule:
         let info_mapper = self.rewards_info(project_id);
         let mut rewards_info = info_mapper.get();
         require!(
+            current_week >= rewards_info.start_week,
+            "Project not started yet"
+        );
+        require!(
             current_week < rewards_info.end_week,
             "May not claim rewards for this project anymore"
         );
@@ -69,7 +73,11 @@ pub trait ClaimRewardsModule:
         let total_rewards = self.rewards_total_amount(project_id, current_week).get();
         let user_original_energy = self.get_energy_amount(&caller);
 
-        let rew_advertised = total_rewards * &user_original_energy / total_energy;
+        let rew_advertised = if total_energy != 0 {
+            total_rewards * &user_original_energy / total_energy
+        } else {
+            BigUint::zero()
+        };
         let opt_rewards = match claim_type {
             ClaimType::Exemption => {
                 let claim_exemption_args = ClaimExemptionArgs {
@@ -102,8 +110,6 @@ pub trait ClaimRewardsModule:
                 OptionalValue::Some(output_payment)
             }
         };
-
-        info_mapper.set(rewards_info);
 
         let total_rewards = match &opt_rewards {
             OptionalValue::Some(payment) => payment.amount.clone(),
@@ -148,6 +154,8 @@ pub trait ClaimRewardsModule:
     }
 
     fn check_signature(&self, args: CheckSignatureArgs<Self::Api>) {
+        self.require_project_active(args.project_id);
+
         if self
             .exempted_participants(args.project_id, args.current_week)
             .contains(&args.user_id)
@@ -155,7 +163,6 @@ pub trait ClaimRewardsModule:
             return;
         }
 
-        self.require_project_active(args.project_id);
         require!(
             args.opt_note_and_signature.is_some(),
             "Must provide note and signature"
@@ -200,7 +207,7 @@ pub trait ClaimRewardsModule:
 
         let rew_available = beta * args.rew_advertised / MAX_PERCENTAGE;
         let rew_available_dollar_value =
-            self.get_dollar_value(args.reward_token_id, rew_available, HOUR_IN_SECONDS);
+            self.get_usdc_value(args.reward_token_id, rew_available, HOUR_IN_SECONDS);
         self.registered_rewards_dollars(args.project_id, args.current_week)
             .update(|reg_rew_dollars| *reg_rew_dollars += rew_available_dollar_value);
 
@@ -212,6 +219,7 @@ pub trait ClaimRewardsModule:
     fn claim_rewards_normal(&self, args: ClaimRewardsArgs<Self::Api>) -> EsdtTokenPayment {
         let rem_rewards_mapper = self.rewards_remaining_amount(args.project_id, args.current_week);
         let remaining_rewards = rem_rewards_mapper.get();
+        require!(remaining_rewards > 0, "Not enough rewards");
 
         let rew_available = core::cmp::min(args.rew_advertised, remaining_rewards);
         let user_rewards =
@@ -229,7 +237,7 @@ pub trait ClaimRewardsModule:
             .update(|int_energy| *int_energy += &user_adjusted_energy);
 
         let rew_available_dollar_value =
-            self.get_dollar_value(args.reward_token_id.clone(), rew_available, HOUR_IN_SECONDS);
+            self.get_usdc_value(args.reward_token_id.clone(), rew_available, HOUR_IN_SECONDS);
         self.registered_rewards_dollars(args.project_id, args.current_week)
             .update(|reg_rew_dollars| *reg_rew_dollars += rew_available_dollar_value);
 

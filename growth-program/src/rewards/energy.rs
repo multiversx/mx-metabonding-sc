@@ -1,9 +1,14 @@
 use super::week_timekeeping::Week;
 
-use crate::{project::ProjectId, DAY_IN_SECONDS, MAX_PERCENTAGE, PRECISION};
+use crate::{
+    project::ProjectId, DAY_IN_SECONDS, MAX_PERCENTAGE, PRECISION, USDC_DECIMALS, WEEKS_PER_YEAR,
+};
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
+
+pub const ENERGY_FOUR_YEARS_MEX: u64 = 4 * 360;
+pub const MEX_AMOUNT_FOR_APR_MATH: u64 = 10_000_000_000;
 
 #[multiversx_sc::module]
 pub trait EnergyModule:
@@ -11,21 +16,48 @@ pub trait EnergyModule:
     + crate::price_query::PriceQueryModule
     + crate::project::ProjectsModule
     + super::week_timekeeping::WeekTimekeepingModule
+    + energy_query::EnergyQueryModule
 {
+    /// min_reward_dollars_per_energy is a value scaled to PRECISION*PRECISION.
+    /// For example, if the desired RDPE is that 10^18 units of energy give 10^{-15} dollars of rewards,
+    /// then we should provide the argument 10^{-15}*10^{-18}*PRECISION*PRECISION = 10^3.
     #[only_owner]
     #[endpoint(setMinRewardDollarsPerEnergy)]
     fn set_min_reward_dollars_per_energy(&self, min_value: BigUint) {
         self.min_reward_dollars_per_energy().set(min_value);
     }
 
+    // The APR should be expressed in MAX_PERC units, e.g. 500 represents 5%.
+    // Here the base investment for this APR is MEX locked for 4 years.
+    #[only_owner]
+    #[endpoint(setInitialRdpeFromApr)]
+    fn set_initial_rdpe_from_apr(&self, apr: BigUint) {
+        let mex_amount = BigUint::from(MEX_AMOUNT_FOR_APR_MATH) * PRECISION;
+        let mex_token_id = self.get_base_token_id();
+        let mex_price = self.get_usdc_value(mex_token_id, mex_amount.clone(), DAY_IN_SECONDS);
+        let num = apr * mex_price * PRECISION * PRECISION;
+        let den = BigUint::from(10u32).pow(USDC_DECIMALS)
+            * MAX_PERCENTAGE
+            * WEEKS_PER_YEAR
+            * ENERGY_FOUR_YEARS_MEX
+            * mex_amount;
+        let first_week_reward_dollars_per_energy = num / den;
+        self.first_week_reward_dollars_per_energy()
+            .set(first_week_reward_dollars_per_energy);
+    }
+
     #[only_owner]
     #[endpoint(setNextWeekRewardDollarsPerEnergy)]
-    fn set_next_week_reward_dollars_per_energy(&self, project_id: ProjectId, new_min: BigUint) {
+    fn set_next_week_reward_dollars_per_energy(
+        &self,
+        project_id: ProjectId,
+        rew_dollars_per_energy: BigUint,
+    ) {
         self.require_valid_project_id(project_id);
 
         let week = self.get_current_week() + 1;
         self.rewards_dollars_per_energy(project_id, week)
-            .set(new_min);
+            .set(rew_dollars_per_energy);
     }
 
     #[only_owner]
@@ -66,9 +98,10 @@ pub trait EnergyModule:
         let rewards_info = self.rewards_info(project_id).get();
         let total_rewards = self.rewards_total_amount(project_id, current_week).get();
         let rewards_value =
-            self.get_dollar_value(rewards_info.reward_token_id, total_rewards, DAY_IN_SECONDS);
-        let energy_per_rew_dollar = self.get_reward_dollar_per_energy(project_id);
-        let total_energy = rewards_value * energy_per_rew_dollar / PRECISION;
+            self.get_usdc_value(rewards_info.reward_token_id, total_rewards, DAY_IN_SECONDS);
+        let reward_per_dollar_energy =
+            self.get_reward_dollar_per_energy(project_id) * BigUint::from(10u32).pow(USDC_DECIMALS);
+        let total_energy = rewards_value * PRECISION * PRECISION / reward_per_dollar_energy;
         mapper.set(&total_energy);
 
         total_energy
@@ -99,7 +132,7 @@ pub trait EnergyModule:
 
         let rewards_info = self.rewards_info(project_id).get();
         let total_rewards_current_week = self.rewards_total_amount(project_id, current_week).get();
-        let rewards_value_current_week = self.get_dollar_value(
+        let rewards_value_current_week = self.get_usdc_value(
             rewards_info.reward_token_id,
             total_rewards_current_week,
             DAY_IN_SECONDS,
@@ -112,7 +145,9 @@ pub trait EnergyModule:
         let den = (registered_energy_prev_week * interested_energy_prev_week).sqrt();
         let alpha = self.alpha().get();
 
-        let calculated_value = alpha * PRECISION * num / (den * MAX_PERCENTAGE);
+        let calculated_value = alpha * PRECISION * PRECISION * num
+            / (den * MAX_PERCENTAGE)
+            / BigUint::from(10u32).pow(USDC_DECIMALS);
         let rdpe_for_week = core::cmp::max(calculated_value, min_reward_dollar_per_energy);
         mapper.set(&rdpe_for_week);
 
@@ -174,6 +209,9 @@ pub trait EnergyModule:
         project_id: ProjectId,
         week: Week,
     ) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("firstWeekRewDollarsPerEnergy")]
+    fn first_week_reward_dollars_per_energy(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("rewDollarsPerEnergy")]
     fn rewards_dollars_per_energy(

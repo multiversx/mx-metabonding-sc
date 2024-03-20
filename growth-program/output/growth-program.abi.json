@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-158-g6a49882"
+            "gitVersion": "v1.0.2-162-g6750cb9"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -21,7 +21,10 @@
     "constructor": {
         "docs": [
             "Arguments:",
-            "min_reward_dollars_per_energy: Scaled to PRECISION const.",
+            "min_reward_dollars_per_energy is a value scaled to PRECISION*PRECISION.",
+            "For example, if the desired RDPE is that 10^18 units of energy give 10^{-15} dollars of rewards,",
+            "then we should provide the argument 10^{-15}*10^{-18}*PRECISION*PRECISION = 10^3.",
+            "",
             "alpha: Percentage, scaled to MAX_PERCENTAGE const.",
             "beta: Percentage, scaled to MAX_PERCENTAGE const."
         ],
@@ -189,10 +192,6 @@
                     "type": "u32"
                 },
                 {
-                    "name": "initial_rewards_dollar_per_energy",
-                    "type": "BigUint"
-                },
-                {
                     "name": "signer",
                     "type": "Address"
                 }
@@ -261,12 +260,29 @@
             "outputs": []
         },
         {
+            "docs": [
+                "min_reward_dollars_per_energy is a value scaled to PRECISION*PRECISION.",
+                "For example, if the desired RDPE is that 10^18 units of energy give 10^{-15} dollars of rewards,",
+                "then we should provide the argument 10^{-15}*10^{-18}*PRECISION*PRECISION = 10^3."
+            ],
             "name": "setMinRewardDollarsPerEnergy",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
                 {
                     "name": "min_value",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setInitialRdpeFromApr",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "apr",
                     "type": "BigUint"
                 }
             ],
@@ -282,7 +298,7 @@
                     "type": "u32"
                 },
                 {
-                    "name": "new_min",
+                    "name": "rew_dollars_per_energy",
                     "type": "BigUint"
                 }
             ],
