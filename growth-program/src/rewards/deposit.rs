@@ -55,7 +55,7 @@ pub trait DepositRewardsModule:
 
         let reward_payment = self.deposit_rewards_common(project_id, start_week, end_week);
 
-        let first_week_rdpe = self.first_week_reward_dollars_per_energy().get();
+        let first_week_rdpe = self.get_initial_rdpe();
         require!(
             first_week_rdpe > 0,
             "First week rewards dollar per energy not set"

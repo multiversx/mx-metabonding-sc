@@ -31,20 +31,25 @@ pub trait EnergyModule:
     // The APR should be expressed in MAX_PERC units, e.g. 500 represents 5%.
     // Here the base investment for this APR is MEX locked for 4 years.
     #[only_owner]
-    #[endpoint(setInitialRdpeFromApr)]
-    fn set_initial_rdpe_from_apr(&self, apr: BigUint) {
+    #[endpoint(setFirstWeekApr)]
+    fn set_first_week_apr(&self, apr: BigUint) {
+        self.first_week_apr().set(apr);
+    }
+
+    #[view(getInitialRdpe)]
+    fn get_initial_rdpe(&self) -> BigUint {
         let mex_amount = BigUint::from(MEX_AMOUNT_FOR_APR_MATH) * PRECISION;
         let mex_token_id = self.get_base_token_id();
         let mex_price = self.get_usdc_value(mex_token_id, mex_amount.clone(), DAY_IN_SECONDS);
+        let apr = self.first_week_apr().get();
         let num = apr * mex_price * PRECISION * PRECISION;
         let den = BigUint::from(10u32).pow(USDC_DECIMALS)
             * MAX_PERCENTAGE
             * WEEKS_PER_YEAR
             * ENERGY_FOUR_YEARS_MEX
             * mex_amount;
-        let first_week_reward_dollars_per_energy = num / den;
-        self.first_week_reward_dollars_per_energy()
-            .set(first_week_reward_dollars_per_energy);
+
+        num / den
     }
 
     #[only_owner]
@@ -229,4 +234,7 @@ pub trait EnergyModule:
 
     #[storage_mapper("beta")]
     fn beta(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("firstWeekApr")]
+    fn first_week_apr(&self) -> SingleValueMapper<BigUint>;
 }
