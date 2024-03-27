@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-167-g5f88425"
+            "gitVersion": "v1.0.2-172-g72185ab"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -277,7 +277,7 @@
             "outputs": []
         },
         {
-            "name": "setInitialRdpeFromApr",
+            "name": "setFirstWeekApr",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -287,6 +287,16 @@
                 }
             ],
             "outputs": []
+        },
+        {
+            "name": "getInitialRdpe",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
         },
         {
             "name": "setNextWeekRewardDollarsPerEnergy",
