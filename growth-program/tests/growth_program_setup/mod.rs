@@ -367,6 +367,19 @@ where
             .assert_ok();
     }
 
+    pub fn set_first_week_apr(&mut self, apr: u64) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.gp_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.set_first_week_apr(apr.into());
+                },
+            )
+            .assert_ok();
+    }
+
     pub fn deposit_rewards(&mut self) {
         let first_proj_owner = self.first_project_owner.clone();
         let second_proj_owner = self.second_project_owner.clone();

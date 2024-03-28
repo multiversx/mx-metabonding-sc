@@ -28,7 +28,7 @@ pub trait EnergyModule:
         self.min_reward_dollars_per_energy().set(min_value);
     }
 
-    // The APR should be expressed in MAX_PERC units, e.g. 500 represents 5%.
+    // The APR should be expressed in MAX_PERC units, e.g. 5000 represents 5%.
     // Here the base investment for this APR is MEX locked for 4 years.
     #[only_owner]
     #[endpoint(setFirstWeekApr)]
