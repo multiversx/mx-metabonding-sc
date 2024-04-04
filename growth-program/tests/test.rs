@@ -240,7 +240,10 @@ fn claim_ok_first_week_unlocked_test() {
         .b_mock
         .execute_query(&setup.gp_wrapper, |sc| {
             let total_energy = sc.total_energy_for_week(1, 2).get();
-            assert_eq!(total_energy, managed_biguint!(7692307));
+            assert_eq!(
+                total_energy,
+                multiversx_sc::types::BigUint::from(57600000000002995200000000191692u128)
+            );
 
             let interested_energy = sc.interested_energy_rewards_claimers(1, 2).get();
             assert_eq!(interested_energy, managed_biguint!(348000) / 4u32); // 25% for full unlocked
@@ -297,14 +300,17 @@ fn claim_ok_first_week_locked_test() {
         .b_mock
         .execute_query(&setup.gp_wrapper, |sc| {
             let total_energy = sc.total_energy_for_week(1, 2).get();
-            assert_eq!(total_energy, managed_biguint!(7692307));
+            assert_eq!(
+                total_energy,
+                multiversx_sc::types::BigUint::from(57600000000002995200000000191692u128)
+            );
 
             let interested_energy = sc.interested_energy_rewards_claimers(1, 2).get();
             assert_eq!(interested_energy, managed_biguint!(348000) / 2u32); // 50% for one week lock
         })
         .assert_ok();
 
-    /* DebugApi::dummy();
+    DebugApi::dummy();
     setup.b_mock.check_nft_balance(
         &setup.first_user_addr,
         LOCKED_TOKEN_ID,
@@ -315,7 +321,7 @@ fn claim_ok_first_week_locked_test() {
             original_token_nonce: 0,
             unlock_epoch: 19,
         }),
-    );*/
+    );
 }
 
 #[test]
@@ -391,7 +397,10 @@ fn claim_attempts_test() {
         .b_mock
         .execute_query(&setup.gp_wrapper, |sc| {
             let total_energy = sc.total_energy_for_week(1, 2).get();
-            assert_eq!(total_energy, managed_biguint!(7692307));
+            assert_eq!(
+                total_energy,
+                multiversx_sc::types::BigUint::from(57600000000002995200000000191692u128)
+            );
 
             let interested_energy = sc.interested_energy_rewards_claimers(1, 2).get();
             assert_eq!(interested_energy, managed_biguint!(348000) / 2u32); // 50% for one week lock

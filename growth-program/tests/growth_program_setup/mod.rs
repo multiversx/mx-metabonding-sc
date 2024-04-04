@@ -384,13 +384,15 @@ where
         let first_proj_owner = self.first_project_owner.clone();
         let second_proj_owner = self.second_project_owner.clone();
 
+        let deposit_amount = &StaticMethods::get_first_token_full_amount();
+
         self.b_mock
             .execute_esdt_transfer(
                 &first_proj_owner,
                 &self.gp_wrapper,
                 FIRST_PROJ_TOKEN,
                 0,
-                &StaticMethods::get_first_token_full_amount(),
+                deposit_amount,
                 |sc| {
                     let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
 
@@ -398,6 +400,7 @@ where
                 },
             )
             .assert_ok();
+        println!("Deposited amount: {0}", deposit_amount);
 
         self.b_mock
             .execute_esdt_transfer(
@@ -437,12 +440,18 @@ where
                     ManagedByteArray::new_from_bytes(signature),
                 )
                     .into();
-                let _ = sc.claim_rewards(
+                let claimed_token = sc.claim_rewards(
                     project_id,
                     managed_biguint!(min_rewards),
                     ClaimType::Rewards(lock_option),
                     OptionalValue::Some(multi_value_arg),
                 );
+                if let OptionalValue::Some(claimed_amount) = claimed_token {
+                    println!(
+                        "Claimed amount: {0}",
+                        claimed_amount.amount.to_u64().unwrap()
+                    );
+                }
             })
     }
 }
