@@ -262,7 +262,7 @@ where
         b_mock.set_esdt_balance(
             &first_user_addr,
             BASE_ASSET_TOKEN_ID,
-            &rust_biguint!(FIRST_USER_LOCKED_TOKENS),
+            &(rust_biguint!(FIRST_USER_LOCKED_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)),
         );
         b_mock.set_esdt_balance(
             &second_user_addr,
@@ -276,7 +276,8 @@ where
                 &energy_factory_wrapper,
                 BASE_ASSET_TOKEN_ID,
                 0,
-                &rust_biguint!(FIRST_USER_LOCKED_TOKENS),
+                &(rust_biguint!(FIRST_USER_LOCKED_TOKENS)
+                    * rust_biguint!(10).pow(DEFAULT_DECIMALS)),
                 |sc| {
                     sc.lock_tokens_endpoint(LOCK_OPTIONS[0], OptionalValue::None);
                 },
@@ -320,9 +321,6 @@ where
                     managed_token_id!(USDC_TOKEN_ID),
                     managed_token_id!(WEGLD_TOKEN_ID),
                 );
-
-                sc.first_week_reward_dollars_per_energy()
-                    .set(managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR) * PRECISION * PRECISION);
 
                 sc.set_paused(false);
             })

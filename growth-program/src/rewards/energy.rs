@@ -216,9 +216,6 @@ pub trait EnergyModule:
         week: Week,
     ) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("firstWeekRewDollarsPerEnergy")]
-    fn first_week_reward_dollars_per_energy(&self) -> SingleValueMapper<BigUint>;
-
     #[storage_mapper("rewDollarsPerEnergy")]
     fn rewards_dollars_per_energy(
         &self,

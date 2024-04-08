@@ -246,14 +246,18 @@ fn claim_ok_first_week_unlocked_test() {
             );
 
             let interested_energy = sc.interested_energy_rewards_claimers(1, 2).get();
-            assert_eq!(interested_energy, managed_biguint!(348000) / 4u32); // 25% for full unlocked
+            assert_eq!(
+                interested_energy,
+                multiversx_sc::types::BigUint::from(348000 * 1000000000000000000u128 / 4)
+            );
+            // 25% for full unlocked
         })
         .assert_ok();
 
     setup.b_mock.check_esdt_balance(
         &setup.first_user_addr,
         FIRST_PROJ_TOKEN,
-        &num_bigint::BigUint::from_u128(435000039150003523500317).unwrap(),
+        &num_bigint::BigUint::from_u128(58092948717945697).unwrap(),
     );
 
     // first user try claim again
@@ -306,7 +310,10 @@ fn claim_ok_first_week_locked_test() {
             );
 
             let interested_energy = sc.interested_energy_rewards_claimers(1, 2).get();
-            assert_eq!(interested_energy, managed_biguint!(348000) / 2u32); // 50% for one week lock
+            assert_eq!(
+                interested_energy,
+                multiversx_sc::types::BigUint::from(348000 * 1000000000000000000u128 / 2)
+            ); // 50% for one week lock
         })
         .assert_ok();
 
@@ -315,7 +322,7 @@ fn claim_ok_first_week_locked_test() {
         &setup.first_user_addr,
         LOCKED_TOKEN_ID,
         1,
-        &num_bigint::BigUint::from_u128(870000078300007047000634).unwrap(),
+        &num_bigint::BigUint::from_u128(116185897435891394).unwrap(),
         Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id_wrapped!(FIRST_PROJ_TOKEN),
             original_token_nonce: 0,
@@ -403,7 +410,10 @@ fn claim_attempts_test() {
             );
 
             let interested_energy = sc.interested_energy_rewards_claimers(1, 2).get();
-            assert_eq!(interested_energy, managed_biguint!(348000) / 2u32); // 50% for one week lock
+            assert_eq!(
+                interested_energy,
+                multiversx_sc::types::BigUint::from(348000 * 1000000000000000000u128) / 2u32
+            ); // 50% for one week lock
         })
         .assert_ok();
 
@@ -412,7 +422,7 @@ fn claim_attempts_test() {
         &setup.first_user_addr,
         LOCKED_TOKEN_ID,
         1,
-        &num_bigint::BigUint::from_u128(870000078300007047000634).unwrap(),
+        &num_bigint::BigUint::from_u128(116185897435891394).unwrap(),
         Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id_wrapped!(FIRST_PROJ_TOKEN),
             original_token_nonce: 0,
@@ -560,7 +570,7 @@ fn exempted_user_claim_next_week_test() {
         &setup.first_user_addr,
         LOCKED_TOKEN_ID,
         1,
-        &rust_biguint!(1705000), // way less rewards due to calculated rdpe decreasing
+        &num_bigint::BigUint::from(1705000000000020459999999u128), // way less rewards due to calculated rdpe decreasing
         Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id_wrapped!(FIRST_PROJ_TOKEN),
             original_token_nonce: 0,
