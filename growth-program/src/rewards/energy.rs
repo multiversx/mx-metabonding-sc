@@ -25,10 +25,11 @@ pub trait EnergyModule:
     #[only_owner]
     #[endpoint(setMinRewardDollarsPerEnergy)]
     fn set_min_reward_dollars_per_energy(&self, min_value: BigUint) {
+        require!(min_value > 0, "RPDE cannot be 0");
         self.min_reward_dollars_per_energy().set(min_value);
     }
 
-    // The APR should be expressed in MAX_PERC units, e.g. 500 represents 5%.
+    // The APR should be expressed in MAX_PERC units, e.g. 5000 represents 5%.
     // Here the base investment for this APR is MEX locked for 4 years.
     #[only_owner]
     #[endpoint(setFirstWeekApr)]
@@ -59,6 +60,7 @@ pub trait EnergyModule:
         project_id: ProjectId,
         rew_dollars_per_energy: BigUint,
     ) {
+        require!(rew_dollars_per_energy > 0, "RPDE cannot be 0");
         self.require_valid_project_id(project_id);
 
         let week = self.get_current_week() + 1;
@@ -105,9 +107,10 @@ pub trait EnergyModule:
         let total_rewards = self.rewards_total_amount(project_id, current_week).get();
         let rewards_value =
             self.get_usdc_value(rewards_info.reward_token_id, total_rewards, DAY_IN_SECONDS);
-        let reward_per_dollar_energy =
-            self.get_reward_dollar_per_energy(project_id) * BigUint::from(10u32).pow(USDC_DECIMALS);
-        let total_energy = rewards_value * PRECISION * PRECISION / reward_per_dollar_energy;
+        let reward_per_dollar_energy = self.get_reward_dollar_per_energy(project_id);
+        let total_energy = rewards_value * PRECISION * PRECISION
+            / (reward_per_dollar_energy * BigUint::from(10u32).pow(USDC_DECIMALS));
+
         mapper.set(&total_energy);
 
         total_energy
@@ -215,9 +218,6 @@ pub trait EnergyModule:
         project_id: ProjectId,
         week: Week,
     ) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("firstWeekRewDollarsPerEnergy")]
-    fn first_week_reward_dollars_per_energy(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("rewDollarsPerEnergy")]
     fn rewards_dollars_per_energy(
