@@ -17,23 +17,23 @@ version = "=0.48.0"
 
 [dependencies.utils]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "27085fb"
+rev = "e993235"
 
 [dependencies.router]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "27085fb"
+rev = "e993235"
 
 [dependencies.pair]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "27085fb"
+rev = "e993235"
 
 [dependencies.energy-query]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "27085fb"
+rev = "e993235"
 
 [dependencies.simple-lock]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "27085fb"
+rev = "e993235"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -55,4 +55,4 @@ path = "../router-mock"
 
 [dependencies.energy-factory]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "27085fb"
+rev = "e993235"
