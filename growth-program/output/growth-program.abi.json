@@ -10,11 +10,11 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-174-g56a7b35"
+            "gitVersion": "v1.0.2-176-gf36b29a"
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.48.0"
+            "version": "0.50.0"
         }
     },
     "name": "GrowthProgram",
@@ -72,13 +72,11 @@
         ],
         "outputs": []
     },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
     "endpoints": [
-        {
-            "name": "upgrade",
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
         {
             "name": "addProject",
             "onlyOwner": true,
