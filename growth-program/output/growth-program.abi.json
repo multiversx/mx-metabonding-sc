@@ -10,11 +10,11 @@
         "contractCrate": {
             "name": "growth-program",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-176-gf36b29a"
+            "gitVersion": "v1.0.2-178-g4445c9a"
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.50.0"
+            "version": "0.50.1"
         }
     },
     "name": "GrowthProgram",
