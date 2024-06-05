@@ -9,31 +9,31 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.48.0"
+version = "=0.50.3"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.48.0"
+version = "=0.50.3"
 
 [dependencies.utils]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "e993235"
+rev = "1cccc07"
 
 [dependencies.router]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "e993235"
+rev = "1cccc07"
 
 [dependencies.pair]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "e993235"
+rev = "1cccc07"
 
 [dependencies.energy-query]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "e993235"
+rev = "1cccc07"
 
 [dependencies.simple-lock]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "e993235"
+rev = "1cccc07"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -42,10 +42,10 @@ hex = "0.4"
 hex-literal = "0.4.1"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.48.0"
+version = "=0.50.3"
 
 [dev-dependencies.multiversx-sc-modules]
-version = "=0.48.0"
+version = "=0.50.3"
 
 [dev-dependencies.pair-mock]
 path = "../pair-mock"
@@ -55,4 +55,4 @@ path = "../router-mock"
 
 [dependencies.energy-factory]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "e993235"
+rev = "1cccc07"
