@@ -9,8 +9,8 @@ publish = false
 path = "src/pair.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.50.3"
+version = "=0.50.4"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.50.3"
+version = "=0.50.4"
