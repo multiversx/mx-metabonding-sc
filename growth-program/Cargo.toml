@@ -17,27 +17,27 @@ version = "=0.50.5"
 
 [dependencies.utils]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "0932481"
+rev = "c061a85"
 
 [dependencies.router]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "0932481"
+rev = "c061a85"
 
 [dependencies.pair]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "0932481"
+rev = "c061a85"
 
 [dependencies.energy-query]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "0932481"
+rev = "c061a85"
 
 [dependencies.simple-lock]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "0932481"
+rev = "c061a85"
 
 [dependencies.energy-factory]
 git = "https://github.com/multiversx/mx-exchange-sc"
-rev = "0932481"
+rev = "c061a85"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
