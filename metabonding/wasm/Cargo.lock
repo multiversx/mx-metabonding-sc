@@ -23,7 +23,7 @@ checksum = "cf4b9d6a944f767f8e5e0db018570623c85f3d925ac718db4e06d0187adb21c1"
 [[package]]
 name = "common_errors"
 version = "0.0.0"
-source = "git+https://github.com/multiversx/mx-exchange-sc?rev=c136244#c1362440452f13e4a3b33d93479653619c72c177"
+source = "git+https://github.com/multiversx/mx-exchange-sc?rev=c061a85#c061a85ed91349699145b58fcc32f2b1fe56ac09"
 dependencies = [
  "multiversx-sc",
 ]
@@ -65,9 +65,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc"
-version = "0.50.1"
+version = "0.50.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "599a8eb65ec60fcd5f71366e83c8e71fc4ab0a89b313367634a61a75d745fb3b"
+checksum = "a38a802d6cfa67748145a9e729336f4e6390eba702b5f14360ed01fcff14faa4"
 dependencies = [
  "bitflags",
  "hex-literal",
@@ -102,9 +102,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-derive"
-version = "0.50.1"
+version = "0.50.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ab52004e5331f71143580faafba4865df8568a059e2d1b800ab1f7149863e5c"
+checksum = "7dc53ddcbd71948d2e8d3d6b814da866e2920b24e6c0cbfa643922f781897476"
 dependencies = [
  "hex",
  "proc-macro2",
@@ -115,18 +115,18 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-modules"
-version = "0.50.1"
+version = "0.50.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e77beee1a1aa0977ae40842dcae10e77ba830b6363a382a70bfce18671a7b35"
+checksum = "ea1ae09db9cac18669b85d50932410df6082e1a575975ba5224e3b7ae33cbe7d"
 dependencies = [
  "multiversx-sc",
 ]
 
 [[package]]
 name = "multiversx-sc-wasm-adapter"
-version = "0.50.1"
+version = "0.50.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "563d26f500165b0d0772559c085b4e02d43b62959d319bda72703d6e5c1009ac"
+checksum = "99a090365b4483b4ea955ba1322f986f6821be88144291f0013c03f59b4de753"
 dependencies = [
  "multiversx-sc",
 ]
@@ -180,7 +180,7 @@ dependencies = [
 [[package]]
 name = "sc_whitelist_module"
 version = "0.0.0"
-source = "git+https://github.com/multiversx/mx-exchange-sc?rev=c136244#c1362440452f13e4a3b33d93479653619c72c177"
+source = "git+https://github.com/multiversx/mx-exchange-sc?rev=c061a85#c061a85ed91349699145b58fcc32f2b1fe56ac09"
 dependencies = [
  "common_errors",
  "multiversx-sc",
