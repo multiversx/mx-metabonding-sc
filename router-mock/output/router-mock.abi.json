@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "router-mock",
             "version": "0.0.0",
-            "gitVersion": "v1.0.2-180-g4664c6f"
+            "gitVersion": "v1.0.2-179-g5cb95cc"
         },
         "framework": {
             "name": "multiversx-sc",

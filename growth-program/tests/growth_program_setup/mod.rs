@@ -262,7 +262,7 @@ where
         b_mock.set_esdt_balance(
             &first_user_addr,
             BASE_ASSET_TOKEN_ID,
-            &rust_biguint!(FIRST_USER_LOCKED_TOKENS),
+            &(rust_biguint!(FIRST_USER_LOCKED_TOKENS) * rust_biguint!(10).pow(DEFAULT_DECIMALS)),
         );
         b_mock.set_esdt_balance(
             &second_user_addr,
@@ -276,7 +276,8 @@ where
                 &energy_factory_wrapper,
                 BASE_ASSET_TOKEN_ID,
                 0,
-                &rust_biguint!(FIRST_USER_LOCKED_TOKENS),
+                &(rust_biguint!(FIRST_USER_LOCKED_TOKENS)
+                    * rust_biguint!(10).pow(DEFAULT_DECIMALS)),
                 |sc| {
                     sc.lock_tokens_endpoint(LOCK_OPTIONS[0], OptionalValue::None);
                 },
@@ -321,9 +322,6 @@ where
                     managed_token_id!(WEGLD_TOKEN_ID),
                 );
 
-                sc.first_week_reward_dollars_per_energy()
-                    .set(managed_biguint!(DEFAULT_ENERGY_PER_DOLLAR) * PRECISION * PRECISION);
-
                 sc.set_paused(false);
             })
             .assert_ok();
@@ -367,9 +365,24 @@ where
             .assert_ok();
     }
 
+    pub fn set_first_week_apr(&mut self, apr: u64) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.gp_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.set_first_week_apr(apr.into());
+                },
+            )
+            .assert_ok();
+    }
+
     pub fn deposit_rewards(&mut self) {
         let first_proj_owner = self.first_project_owner.clone();
         let second_proj_owner = self.second_project_owner.clone();
+
+        let deposit_amount = &StaticMethods::get_first_token_full_amount();
 
         self.b_mock
             .execute_esdt_transfer(
@@ -377,7 +390,7 @@ where
                 &self.gp_wrapper,
                 FIRST_PROJ_TOKEN,
                 0,
-                &StaticMethods::get_first_token_full_amount(),
+                deposit_amount,
                 |sc| {
                     let signer_addr = managed_address!(&Address::from(&SIGNER_ADDRESS));
 
@@ -385,6 +398,7 @@ where
                 },
             )
             .assert_ok();
+        println!("Deposited amount: {0}", deposit_amount);
 
         self.b_mock
             .execute_esdt_transfer(
@@ -424,12 +438,18 @@ where
                     ManagedByteArray::new_from_bytes(signature),
                 )
                     .into();
-                let _ = sc.claim_rewards(
+                let claimed_token = sc.claim_rewards(
                     project_id,
                     managed_biguint!(min_rewards),
                     ClaimType::Rewards(lock_option),
                     OptionalValue::Some(multi_value_arg),
                 );
+                if let OptionalValue::Some(claimed_amount) = claimed_token {
+                    println!(
+                        "Claimed amount: {0}",
+                        claimed_amount.amount.to_u64().unwrap()
+                    );
+                }
             })
     }
 }
