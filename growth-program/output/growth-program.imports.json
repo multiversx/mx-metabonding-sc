@@ -31,6 +31,7 @@
   "mBufferGetLength",
   "mBufferNew",
   "mBufferSetBytes",
+  "mBufferSetRandom",
   "mBufferStorageLoad",
   "mBufferStorageLoadFromAddress",
   "mBufferStorageStore",

@@ -225,7 +225,7 @@ fn claim_ok_first_week_unlocked_test() {
     // advance to week 2
     setup.advance_week();
 
-    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
+    let sig_first_user_week_2 = hex_literal::hex!("5457dfa67583f102a6f9ea9368de59ce795216c98d7a90bd3173c1fdf1073c5e38044f19d785c47bb9c4be09f9c9ad793474e9a0dd8cea814c3812ab52bcd00b");
     setup
         .claim(
             &setup.first_user_addr.clone(),
@@ -289,7 +289,7 @@ fn claim_ok_first_week_locked_test() {
     // advance to week 2
     setup.advance_week();
 
-    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
+    let sig_first_user_week_2 = hex_literal::hex!("5457dfa67583f102a6f9ea9368de59ce795216c98d7a90bd3173c1fdf1073c5e38044f19d785c47bb9c4be09f9c9ad793474e9a0dd8cea814c3812ab52bcd00b");
     setup
         .claim(
             &setup.first_user_addr.clone(),
@@ -348,7 +348,7 @@ fn claim_too_many_rewards_test() {
     // advance to week 2
     setup.advance_week();
 
-    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
+    let sig_first_user_week_2 = hex_literal::hex!("5457dfa67583f102a6f9ea9368de59ce795216c98d7a90bd3173c1fdf1073c5e38044f19d785c47bb9c4be09f9c9ad793474e9a0dd8cea814c3812ab52bcd00b");
     setup
         .b_mock
         .execute_tx(
@@ -389,7 +389,7 @@ fn claim_attempts_test() {
     // advance to week 2
     setup.advance_week();
 
-    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
+    let sig_first_user_week_2 = hex_literal::hex!("5457dfa67583f102a6f9ea9368de59ce795216c98d7a90bd3173c1fdf1073c5e38044f19d785c47bb9c4be09f9c9ad793474e9a0dd8cea814c3812ab52bcd00b");
     setup
         .claim(
             &setup.first_user_addr.clone(),
@@ -492,7 +492,7 @@ fn exempted_user_claim_next_week_test() {
     setup.advance_week();
 
     // first user try claim exemption while rewards remain
-    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
+    let sig_first_user_week_2 = hex_literal::hex!("5457dfa67583f102a6f9ea9368de59ce795216c98d7a90bd3173c1fdf1073c5e38044f19d785c47bb9c4be09f9c9ad793474e9a0dd8cea814c3812ab52bcd00b");
     setup
         .b_mock
         .execute_tx(
@@ -517,7 +517,7 @@ fn exempted_user_claim_next_week_test() {
         .assert_user_error("Can claim full rewards");
 
     // first user claim exemption
-    let sig_first_user_week_2 = hex_literal::hex!("3360e54f357cbb67b1c34771b633d0f7ad9779019a0dcee252d972315c1edb8178012f057c94714e52b3d461ef333cb3020c29e3f98e467a4d3341880891690e");
+    let sig_first_user_week_2 = hex_literal::hex!("5457dfa67583f102a6f9ea9368de59ce795216c98d7a90bd3173c1fdf1073c5e38044f19d785c47bb9c4be09f9c9ad793474e9a0dd8cea814c3812ab52bcd00b");
     setup
         .b_mock
         .execute_tx(
