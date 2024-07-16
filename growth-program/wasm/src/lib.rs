@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           37
+// Endpoints:                           38
 // Async Callback (empty):               1
-// Total number of exported functions:  40
+// Total number of exported functions:  41
 
 #![no_std]
 
@@ -49,6 +49,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getRewardsRemainingAmount => rewards_remaining_amount
         getNotesHistory => get_notes_history
         changeSigner => change_signer
+        getSignaturePrefix => signature_prefix
         getCurrentWeek => get_current_week
         getTimestampsStartAndEndOfWeek => get_timestamps_start_and_end_of_week
         getFirstWeekStartTimestamp => first_week_start_timestamp

@@ -97,6 +97,8 @@ pub trait GrowthProgram:
         self.first_week_start_timestamp()
             .set(first_week_start_timestamp);
 
+        self.generate_signature_prefix();
+
         self.set_paused(true);
     }
 
