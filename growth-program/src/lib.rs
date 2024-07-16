@@ -19,8 +19,6 @@ pub const WEEK_IN_SECONDS: Timestamp = 7 * DAY_IN_SECONDS;
 pub const WEEKS_PER_YEAR: u32 = 52;
 pub const PRECISION: u64 = 1_000_000_000_000_000_000;
 
-pub static GROWTH_SIGNATURE_PREFIX: &[u8] = b"xExchangeGrowthV1TaskCompleted";
-
 pub const DEFAULT_MIN_REWARDS_PERIOD: Week = 26;
 pub const DEFAULT_MIN_WEEKLY_REWARDS_DOLLARS_VALUE: u64 = 1_000;
 pub const USDC_DECIMALS: u32 = 6;

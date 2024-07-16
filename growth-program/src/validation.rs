@@ -1,4 +1,4 @@
-use crate::{project::ProjectId, rewards::week_timekeeping::Week, GROWTH_SIGNATURE_PREFIX};
+use crate::{project::ProjectId, rewards::week_timekeeping::Week};
 
 multiversx_sc::imports!();
 
@@ -33,7 +33,6 @@ pub trait ValidationModule: crate::project::ProjectsModule + crate::events::Even
         let signature_prefix = self.signature_prefix().get();
         let mut data = ManagedBuffer::new();
         let _ = signature_prefix.dep_encode(&mut data);
-        let _ = GROWTH_SIGNATURE_PREFIX.dep_encode(&mut data);
         let _ = signature_data.project_id.dep_encode(&mut data);
         let _ = signature_data.week.dep_encode(&mut data);
         let _ = signature_data.caller.dep_encode(&mut data);
