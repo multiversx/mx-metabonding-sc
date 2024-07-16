@@ -100,6 +100,6 @@ pub trait GrowthProgram:
         self.set_paused(true);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 }
