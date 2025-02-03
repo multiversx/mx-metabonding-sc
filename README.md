@@ -1,5 +1,7 @@
 # Metabonding
 
+...
+
 ## Introduction
 
 The metabonding smart contract is meant to give additional incentives to users to stake their tokens, specifically EGLD and LKMEX (Locked MEX). Each user that has some tokens staked will receive rewards based on how much they contribute to the specific staking pool.
