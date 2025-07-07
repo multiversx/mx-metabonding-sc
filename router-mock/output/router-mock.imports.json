@@ -1,6 +1,7 @@
 [
   "checkNoPayment",
   "getNumArguments",
+  "mBufferAppend",
   "mBufferAppendBytes",
   "mBufferEq",
   "mBufferFinish",
