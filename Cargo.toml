@@ -9,3 +9,5 @@ members = [
   "router-mock",
   "router-mock/meta"
 ]
+
+resolver = "2"
